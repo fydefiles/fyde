@@ -1,0 +1,20 @@
+{
+  "data_mode": "manual",
+  "implementation_pr": "https://github.com/mehmetuzgoren/fyde/pull/1",
+  "state": "merged",
+  "base": "dev",
+  "head_sha": "f6da1bb414fa2869445477d7539009a44ad40021",
+  "merge_sha": "f004e482527bda7d3bd5c2803dd382c0deea81cd",
+  "post_merge_checks": "https://github.com/mehmetuzgoren/fyde/actions/runs/42425223214",
+  "post_merge_conclusion": "success",
+  "deployment_workflow": "https://github.com/mehmetuzgoren/fyde/actions/runs/42425269780",
+  "deployment_conclusion": "skipped",
+  "hosted_deployments": 0,
+  "main_promoted": false,
+  "worktree_archive": {
+    "status": "blocked",
+    "reason": "The task's primary checkout cannot be removed.",
+    "path": "/Users/mehmetuzgoren/.codex/worktrees/fyde-implementation/fyde"
+  },
+  "local_runtime_preserved": "/Users/mehmetuzgoren/Desktop/Life/Side Projects/fyde/var"
+}

@@ -24,7 +24,7 @@ The coordinator is trusted orchestration code, not the untrusted model. Run the 
 1. Verify a sending domain with Resend. Store the scoped key in the host secret store.
 2. Set `EMAIL_ADAPTER=resend`, `EMAIL_FROM`, `RESEND_API_KEY`, the public HTTPS `SITE_URL`, positive `EMAIL_UNIT_COST_USD` and `EMAIL_DAILY_BUDGET_USD`, and `EXTERNAL_EMAIL_DAILY_LIMIT`.
 3. Supervise `run_delivery`. It persists email intent before sending, reserves the configured estimated spend once, and uses a stable Resend idempotency key. Unknown outcomes retain quota and can retry the same immutable payload at most three times inside 23 hours. Beyond that, operator/provider reconciliation is required. Resend documents a 24-hour provider idempotency window.
-4. Complete a real sender/contact verification, send and recipient download using a consent-safe sample. Preserve the provider ID and receipt; do not mark M1 live-verified before this.
+4. Create a fresh live account; fixture identities and local verification cannot authorize live sends. Complete real sender/contact verification, a send and recipient download using a consent-safe sample. Preserve the provider ID and receipt; do not mark M1 live-verified before this.
 5. Use `manage.py reconcile_delivery [transfer_id]` to retrieve provider status. Provider-reported terminal failures reverse usage once. Do not invent delivery/read evidence.
 
 Config-blocked jobs remain visibly blocked. Cancel an unsent transfer to release its unused quota, resolve configuration, and create a new operation. Revoking an uncertain send keeps its reservation until the provider outcome is reconciled; it does not authorize a resend.

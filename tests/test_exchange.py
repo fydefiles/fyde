@@ -335,6 +335,8 @@ class ExchangeJourney(TestCase):
         EXTERNAL_EMAIL_DAILY_LIMIT=100,
     )
     def test_uncertain_provider_outcome_reuses_key_and_preserves_quota(self):
+        self.owner.data_mode = "live"
+        self.owner.save(update_fields=["data_mode"])
         transfer = self.transfer()
         mail = Mail.objects.get(transfer=transfer)
         with patch("exchange.delivery.ResendEmail.send", side_effect=ProviderUncertain("timeout")):
@@ -395,6 +397,8 @@ class ExchangeJourney(TestCase):
         EXTERNAL_EMAIL_DAILY_LIMIT=100,
     )
     def test_revoking_an_uncertain_send_preserves_reservation_and_original_receipt_destination(self):
+        self.owner.data_mode = "live"
+        self.owner.save(update_fields=["data_mode"])
         transfer = self.transfer()
         mail = Mail.objects.get(transfer=transfer)
         with patch("exchange.delivery.ResendEmail.send", side_effect=ProviderUncertain("timeout")):
@@ -407,3 +411,11 @@ class ExchangeJourney(TestCase):
         receipt = self.client.get(reverse("receipt", args=[transfer.pk]))
         self.assertContains(receipt, "john@example.test")
         self.assertNotContains(receipt, "new-address@example.test")
+
+    @override_settings(EMAIL_ADAPTER="resend")
+    def test_local_verification_cannot_promote_fixture_identity_to_live_sending(self):
+        with self.assertRaises(PolicyError) as blocked:
+            self.transfer()
+        self.assertEqual(blocked.exception.code, "fixture_identity")
+        self.assertEqual(Transfer.objects.count(), 0)
+        self.assertEqual(Mail.objects.count(), 0)

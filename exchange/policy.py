@@ -67,6 +67,11 @@ def check_grant(grant, *, owner=None, contact=None, version=None):
     contact = contact or grant.contact
     version = version or grant.version
     document = version.document
+    if settings.EMAIL_ADAPTER == "resend" and owner.data_mode != "live":
+        raise PolicyError(
+            "fixture_identity",
+            "Local fixture identities cannot send through a live provider. Create and verify a live account.",
+        )
     if not (grant.owner_id == owner.pk == contact.owner_id == document.owner_id):
         raise PolicyError("denied", "This sharing permission is unavailable.")
     if grant.contact_id != contact.pk or grant.version_id != version.pk:

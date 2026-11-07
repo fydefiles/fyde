@@ -1,0 +1,60 @@
+name: Deploy approved development revision
+on:
+  workflow_run:
+    workflows: ['Verify application']
+    types: [completed]
+    branches: [dev]
+permissions:
+  contents: read
+concurrency:
+  group: development-deployment
+  cancel-in-progress: false
+jobs:
+  deploy-development:
+    if: github.event.workflow_run.conclusion == 'success' && vars.DEVELOPMENT_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: development
+      url: ${{ vars.DEVELOPMENT_APP_URL }}
+    permissions:
+      contents: read
+      packages: write
+      deployments: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - name: Build immutable application image
+        env:
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: docker build --build-arg RELEASE_SHA="$RELEASE_SHA" -t "ghcr.io/mehmetuzgoren/fyde:$RELEASE_SHA" .
+      - name: Publish verified image
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username '${{ github.actor }}' --password-stdin
+          docker push "ghcr.io/mehmetuzgoren/fyde:$RELEASE_SHA"
+          docker inspect "ghcr.io/mehmetuzgoren/fyde:$RELEASE_SHA" --format '{{index .RepoDigests 0}}' > /tmp/fyde-image.txt
+      - name: Call constrained host deployment command
+        env:
+          DEPLOY_KEY: ${{ secrets.DEVELOPMENT_DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEVELOPMENT_KNOWN_HOSTS }}
+          DEPLOY_HOST: ${{ vars.DEVELOPMENT_DEPLOY_HOST }}
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/fyde-deploy
+          chmod 600 ~/.ssh/fyde-deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          IMAGE=$(cat /tmp/fyde-image.txt)
+          ssh -i ~/.ssh/fyde-deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_HOST" "fyde-deploy $IMAGE $RELEASE_SHA"
+      - name: Verify hosted release identity
+        env:
+          APP_URL: ${{ vars.DEVELOPMENT_APP_URL }}
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          curl --fail --silent --max-time 15 "$APP_URL/health/" | python -c 'import json,sys; assert json.load(sys.stdin)["revision"] == sys.argv[1]' "$RELEASE_SHA"
+          curl --fail --silent --max-time 15 "$APP_URL/help/" > /dev/null

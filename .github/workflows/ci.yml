@@ -1,0 +1,70 @@
+name: Verify application
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev, main, 'codex/**']
+permissions:
+  contents: read
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: fyde
+          POSTGRES_PASSWORD: fixture-only
+          POSTGRES_DB: fyde
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd 'pg_isready -U fyde' --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://fyde:fixture-only@127.0.0.1:5432/fyde
+      COMPANY_DATABASE_URL: postgresql://fyde:fixture-only@127.0.0.1:5432/fyde_company
+      EMAIL_ADAPTER: local
+      DJANGO_DEBUG: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - run: pip install uv==0.12.19
+      - run: uv sync --frozen
+      - name: Create independent company database
+        run: PGPASSWORD=fixture-only psql -h 127.0.0.1 -U fyde -d fyde -c 'CREATE DATABASE fyde_company'
+      - run: uv run python manage.py check
+      - run: uv run python manage.py makemigrations --check --dry-run
+      - run: uv run ruff check .
+      - run: uv run python manage.py test tests --noinput
+      - run: uv run python manage.py collectstatic --noinput
+  release-boundary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - run: pip install uv==0.12.19
+      - run: uv sync --frozen
+      - name: Enforce autonomous content boundary from trusted base
+        env:
+          HEAD_BRANCH: ${{ github.head_ref || github.ref_name }}
+          BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [[ "$HEAD_BRANCH" == codex/company/* ]]; then
+            git show "$BASE_REF:ops/release-boundary.py" > /tmp/fyde-boundary.py
+            git worktree add --detach /tmp/fyde-trusted "$BASE_REF"
+            cp /tmp/fyde-boundary.py /tmp/fyde-trusted/ops/release-boundary.py
+            PYTHONPATH=/tmp/fyde-trusted uv run python /tmp/fyde-trusted/ops/release-boundary.py "$BASE_REF" "$HEAD_REF" "$HEAD_BRANCH"
+          else
+            echo 'Operator-authored change: integration and normal repository review apply.'
+          fi

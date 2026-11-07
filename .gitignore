@@ -12,3 +12,5 @@ var/
 .DS_Store
 node_modules/
 artifacts/private/
+artifacts/evidence/*-integration.txt
+artifacts/evidence/container-build.txt

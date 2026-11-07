@@ -1,0 +1,6 @@
+SYNTHETIC DEMO DOCUMENT
+
+This sample résumé contains no real personal information.
+Name: Example Person
+Experience: Built a demonstration of permissioned file sharing.
+Purpose: Verify Fyde sends the exact file to the verified contact.

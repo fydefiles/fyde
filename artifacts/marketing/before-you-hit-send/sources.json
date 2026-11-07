@@ -1,0 +1,35 @@
+[
+  {
+    "claim": "Personal Gmail accounts have a 25 MB attachment limit.",
+    "qualification": "Google Workspace administrators set work and school attachment limits. The limit is for total attachment size, not each individual file.",
+    "source_url": "https://support.google.com/mail/answer/6584?hl=en",
+    "publisher": "Google",
+    "title": "Send attachments with your Gmail message",
+    "source_date": "Current product documentation; no publication date shown",
+    "retrieved_at": "2026-11-07 22:49:28.942038+00:00",
+    "source_sha256": "d53aac1ed6ba6903021893b105174f28496f8db1cc81a24d119c6fd5c479ebea",
+    "verification_method": "curated_primary_source_anchors"
+  },
+  {
+    "claim": "When total attachments exceed the applicable limit, Gmail adds a Google Drive link instead.",
+    "qualification": "Recipients still need the relevant Drive access. This is Gmail behavior, not an endorsement or affiliation.",
+    "source_url": "https://support.google.com/mail/answer/6584?hl=en",
+    "publisher": "Google",
+    "title": "Send attachments with your Gmail message",
+    "source_date": "Current product documentation; no publication date shown",
+    "retrieved_at": "2026-11-07 22:49:28.944907+00:00",
+    "source_sha256": "d53aac1ed6ba6903021893b105174f28496f8db1cc81a24d119c6fd5c479ebea",
+    "verification_method": "curated_primary_source_anchors"
+  },
+  {
+    "claim": "Dropbox shared-link restrictions apply to that link; people with existing direct access keep their permissions.",
+    "qualification": "The documented advanced link options are limited to specified Dropbox paid plans. Direct membership permissions must be managed separately.",
+    "source_url": "https://help.dropbox.com/share/set-link-permissions",
+    "publisher": "Dropbox",
+    "title": "How to set or change shared link permissions",
+    "source_date": "Updated February 20, 2026",
+    "retrieved_at": "2026-11-07 22:49:29.117516+00:00",
+    "source_sha256": "0c8b62531cebd777128f160ddd2bd914f01d877541f26fd1bcedf37b76a68aed",
+    "verification_method": "curated_primary_source_anchors"
+  }
+]

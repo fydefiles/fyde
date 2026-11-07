@@ -1,0 +1,12 @@
+Before your next file send: know the attachment limit and check who can open the link.
+
+Sources checked 2026-11-07 (UTC):
+Google: https://support.google.com/mail/answer/6584?hl=en
+Google Workspace administrators set work and school attachment limits. The limit is for total attachment size, not each individual file.
+Google: https://support.google.com/mail/answer/6584?hl=en
+Recipients still need the relevant Drive access. This is Gmail behavior, not an endorsement or affiliation.
+Dropbox: https://help.dropbox.com/share/set-link-permissions
+The documented advanced link options are limited to specified Dropbox paid plans. Direct membership permissions must be managed separately.
+
+Try Fyde free: http://127.0.0.1:8000?utm_source=instagram&utm_medium=carousel&utm_campaign=sharing-20261107
+Google and Dropbox are referenced for their documented behavior; no affiliation is implied.

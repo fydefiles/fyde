@@ -1,0 +1,55 @@
+{
+  "id": "cf2d1834-26e9-428f-be68-c6dbe0925a8a",
+  "status": "quality_passed",
+  "destination": "http://127.0.0.1:8000?utm_source=instagram&utm_medium=carousel&utm_campaign=sharing-20261107",
+  "campaign": "sharing-20261107",
+  "quality": {
+    "dimensions": [
+      1080,
+      1350
+    ],
+    "format": "JPEG",
+    "text_overflow": false,
+    "minimum_font_px": 27,
+    "contrast_ratio_min": 6.45,
+    "assets": [
+      {
+        "file": "slide-01.jpg",
+        "sha256": "738bfcc263d8da750fada775812f6b9e4a0c2881e5d275f0737ddc9dea0052f7",
+        "bytes": 73679,
+        "alt": "Before you hit send.. Attachment or link? A few useful details can change how you share your next document."
+      },
+      {
+        "file": "slide-02.jpg",
+        "sha256": "204a5aae2cefc224d1a981fa8380d6ea285b9020d845aca451db43e56d6da973",
+        "bytes": 84997,
+        "alt": "25 MB in personal Gmail.. That is the attachment limit for personal accounts. Work and school limits are set by the Workspace administrator."
+      },
+      {
+        "file": "slide-03.jpg",
+        "sha256": "dbec69f3c94b5cedccd3fe9869b2e4941fd4061dffc2767233c9ad93cb4c04a8",
+        "bytes": 86476,
+        "alt": "Gmail switches to a link.. When total attachments exceed the applicable limit, Gmail adds a Google Drive link. Check that the recipient has access."
+      },
+      {
+        "file": "slide-04.jpg",
+        "sha256": "00ca023431a283027dd825bf2ddaa955b0f93ace548752356ed35d977cc9d603",
+        "bytes": 90649,
+        "alt": "A link is one route in.. Dropbox link restrictions apply to that link. People with existing direct access keep their permissions. Manage direct access separately."
+      },
+      {
+        "file": "slide-05.jpg",
+        "sha256": "9310ad9a9d8ecf13f3aac195eee63cf87beb6dfe2b5a0f951d21564ab06d86bc",
+        "bytes": 101130,
+        "alt": "Check the version and the person.. Choose the exact document. Confirm the recipient address. Decide when access should end. Treat downloaded copies as permanent."
+      },
+      {
+        "file": "slide-06.jpg",
+        "sha256": "1970c6c95875cb3dc53bca1712b374a55ca873690c49d6f199d492c1e863894a",
+        "bytes": 88244,
+        "alt": "The right file. The right person.. Try Fyde free. Add a file and a verified contact, then ask for a send. Open Fyde at the address below."
+      }
+    ],
+    "checks": "deterministic bounds, character limits, source freshness, final CTA"
+  }
+}

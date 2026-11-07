@@ -507,19 +507,79 @@ Architecture decision: use a modular Django application because the repository h
 
 Canonical tracker: repository `product.md`. The supplied Downloads copy is synchronized at milestone boundaries. The original brief defines desired behavior; status statements above and milestone evidence describe implementation reality.
 
+### Milestone 1: local file-sharing workflow, November 7, 2026
+
+Implemented Django authentication, private original-byte storage, immutable versions and preferred-version selection, inert-text validation, fail-closed PDF/DOCX quarantine, tenant-scoped filename/content search, verified contacts, bounded conversational sends and explicitly consented context, exact-version grants, email outbox jobs, recipient-code verification, verified downloads, receipts, revocation, pause controls, atomic send reservations, separate fixture/live periods, bandwidth accounting, and partial standing-request fulfillment.
+
+Evidence: `uv run python manage.py test tests.test_exchange --noinput` passed 15 database-backed integration journeys. The suite exercises the complete local workflow, wrong/ambiguous recipients, cross-tenant search/excerpt/download/transfer denial, expired/replayed verification, five-attempt lockout, endpoint replacement, sensitive-file grants, quota/idempotency/reversals, partial incoming requests, future-version exclusion, inert document injection, global pause, CSRF, operator authorization, and simulated provider timeouts. `python manage.py check` passed; both database migrations applied locally.
+
+Modes: `fixture` local email outbox and synthetic documents; mocked Resend responses test recovery behavior only. No real recipient mailbox, provider acceptance, attendee feedback, deployment, payment, or Instagram post has been observed. M1 and M2 live acceptance remain incomplete.
+
+Status: P02–P07, P09–P11 and V01–V04 are implemented with local integration evidence; P03 supports UTF-8 text now, while PDF/DOCX require configured ClamAV and their live path remains unverified. P08 is implemented but blocked on F03 for live delivery. P12 and company workflows are in progress. No claim of whole-register completion is made.
+
+Next: exercise billing events and company trust boundaries, inspect the rendered application, research/render the educational carousel, and prepare the protected development delivery.
+
+### Milestone 2: company workflows, billing, and marketing, November 7, 2026
+
+The browser completed sign-in → upload of `artifacts/synthetic-resume.txt` → sender/contact verification → “Send my résumé to John” → fixture delivery receipt → separate recipient verification → download. The uploaded and downloaded file hashes both equal `c3aa5c984c597020c6f9b698b79bfe44783284e8c44f775fba38c5297976d795`. The receipt records transfer `19289705-9a48-4c90-b7e6-afaa6fd0bf90` in the local fixture database. No real email left the computer.
+
+The company has a separate database; opt-in feedback crosses a durable trusted bridge after redaction, while private support bodies stay in the customer plane. Triage creates bounded work and holds protected changes for review. A Naïve adapter implements the documented session API, deny-all tool-policy checks, version pinning, session IDs and spend reservations, but has not contacted an authorized Naïve account. The content builder accepts one existing help-section text change, uses an isolated Git worktree, and requires a matching immutable Docker verifier with no network/customer mounts. The separate release controller requires protected dev checks and actual deployment evidence; automatic release is disabled. No genuine attendee request or shipped autonomous change exists yet.
+
+Stripe checkout, persisted checkout idempotency, customer portal, signature-verified webhooks, authoritative lifecycle reconciliation, and sandbox/live entitlement separation are implemented. Tests exercise renewal, upgrade/downgrade, past-due state, cancellation, forged/duplicate/older events, and success-redirect non-authority. No Stripe account/payment has been activated. Refund/revenue reconciliation remains incomplete.
+
+Marketing research fetched current Google and Dropbox primary documentation and verified the catalog's exact support anchors. Carousel `cf2d1834-26e9-428f-be68-c6dbe0925a8a` has six rendered 1080×1350 JPEG slides, per-asset hashes and alt descriptions, caption, source ledger, measured template contrast of at least 6.45:1, and a local-product CTA. Package: `var/marketing/<carousel-id>/ready-to-publish.zip`; preview: `artifacts/evidence/carousel-contact-sheet.jpg`. Publication remains blocked on F05 and a public HTTPS destination. No post, engagement, or conversion is fabricated. First-party campaign visit/signup/activation measurement is implemented; revenue and cross-device attribution remain unknown.
+
+PostgreSQL verification passed 28 database-backed journeys, including a real two-thread race for the last free quota unit. The test exposed a PostgreSQL nullable-join locking incompatibility in verification; the implementation now locks the Challenge row explicitly. Subsequent checks preserve original receipt destinations and retain quota for revoked sends with uncertain provider outcomes. Docker image build completed locally. The production-settings system check has only the intentional HSTS preload notice; local development mode emits the expected secure-cookie/HTTPS notices.
+
+#### Current implementation status (supersedes the initial inspection table)
+
+| IDs | Status | Evidence / remaining scope | Next action / dependency |
+| --- | --- | --- | --- |
+| P01 | verified | Empty local/remote inspection and architecture decision recorded | Preserve Django implementation |
+| P02, P06, P10, P11 | verified | Local/browser and PostgreSQL integration evidence for auth/isolation, exact-version grants, receipts/pauses, atomic metering | Repeat affected smoke journey on configured host |
+| P03 | in_progress | Private uploads, immutable versions, inert UTF-8 indexing, preview/export; PDF/DOCX fail closed | Configure ClamAV and verify PDF/DOCX live path; OCR remains unavailable |
+| P04 | in_progress | Contact aliases, email verification, endpoint revision invalidation, ambiguity handling work | Email is the only implemented/preferred channel; no contact import |
+| P05 | in_progress | Bounded English find/send/share/email resolver and explicit 15-minute context work | General semantic conversation/history queries remain incomplete |
+| P07–P08 | blocked | Trusted controller, stable operation IDs, Resend adapter and verified recipient download exist; provider timeouts simulated | F03: configure sender, HTTPS origin, credentials and email budget; perform a real send |
+| P09 | verified | Two permitted versions and one unauthorized request yield two sends plus a private unavailable result in integration evidence | Live proof depends on F03 |
+| P12 | in_progress | Checkout/portal and verified subscription lifecycle implemented and tested with fixtures | F06; complete refund and settled revenue reconciliation before paid launch |
+| P13 | in_progress | Per-file original export, metadata export, document-byte/text deletion, permission/privacy disclosures | Account deletion, retention expiry and backup erasure remain incomplete; F08 |
+| P14 | deferred | No local-folder, messaging, voice or Vexo integration claimed | F11, after core live workflow |
+| A01 | in_progress | Durable database jobs/events, deduplication, leases, retries, safe failure codes and local worker launcher | Verify supervised hosted restart/recovery |
+| A02 | blocked | Documented Naïve adapter exists; no provider session | F02 credentials, scoped agent and budget |
+| A03 | verified | Consent-based in-app public/private feedback intake; conditional subreddit invitation | F04 needed for real subreddit link |
+| A04 | blocked | Reddit automation deliberately disabled pending commercial approval; no actual app listings exist | F04 approval and supported connector implementation |
+| A05 | in_progress | Deterministic clustering, existing-function checks, priorities and content-only acceptance specs | Validate choices on genuine attendee feedback; F09 |
+| A06–A07 | in_progress | Isolated content builder, fixed JSON gate, immutable verifier and protected CI controls implemented | Exercise actual isolated fixture build; then configure F02/F10 |
+| A08 | blocked | Trusted PR/release controller and disabled deployment/rollback templates exist | F01/F10 host, environment, protected checks, constrained credentials; hosted rollback unverified |
+| A09 | in_progress | Deduplicated requester notifications, truthful blocked-state notices and aggregate help-use events | A real verified release is required for shipped notification evidence |
+| A10–A11 | verified | Primary-source fetch/hash/anchors; six slides, caption, alt descriptions, layout checks and final CTA rendered and inspected | Re-render CTA after public domain activation |
+| A12 | blocked | Facebook Login publishing/reconciliation/insights adapter implemented, inactive | F05 authorization, current API version and public media/destination; live API behavior unverified |
+| A13 | in_progress | First-party campaign visits/signup/activation aggregates and explicit attribution limits | Observe a genuine authorized campaign; revenue attribution remains unknown |
+| A14 | in_progress | Private support intake, scoped routine guidance and escalation to operator | Broader autonomous support and refund policy remain incomplete |
+| A15 | in_progress | Durable queue monitoring, incidents, cost reservations and operational runbook | Provider invoice reconciliation, encrypted backups/restore and sustained health monitoring remain incomplete |
+| A16 | in_progress | Staff dashboard, actual records/modes, pause, founder queue, attempts and spend caps | Populate live evidence and configure production role/DB/volume separation |
+| A17 | in_progress | Local supervised launcher, event jobs and opt-in daily marketing/measurement schedules | No deployed cloud worker or schedule exists; F01/F10 |
+| V01–V05 | verified | Database journeys exercise tenancy, recipient/grant failures, inert injections, idempotency/quotas/provider uncertainty and billing lifecycle | Live external-provider smoke evidence remains blocked |
+| V06–V08 | in_progress | Scope/claim/pause/retry checks exist; protected baseline and Docker isolation implemented | Complete immutable sandbox fixture run; hosted restart/rollback and live permissions remain unverified |
+| V09 | blocked | Fixtures are labeled; no attendee feedback is represented as genuine | F09 and real protected release/delivery |
+| V10 | in_progress | README, env example, deployment/operations/economics docs and honest adapter states exist | Finish public-launch blockers before activation |
+
+External spend in this implementation session: no paid provider action observed. Docker and test operations used local resources; provider research was read-only. No live revenue exists. Founder actions F01–F10 remain blocked on the account/control decisions described in §16; F11 is deferred. The next unblocked task is independent sandbox execution, GitHub development checks/delivery, responsive inspection, and final evidence reconciliation.
+
 ### Product and delivery
 
 - [x] P01 — Inspect existing implementation, preserve working stack, and record architecture decisions.
-- [ ] P02 — Implement and verify authentication, tenant isolation, and per-object authorization.
+- [x] P02 — Implement and verify authentication, tenant isolation, and per-object authorization.
 - [ ] P03 — Private upload, safe extraction/quarantine, immutable versions, preview, and searchable indexing.
 - [ ] P04 — Contacts, endpoint verification, aliases, preferred channels, and ambiguity handling.
 - [ ] P05 — Natural-language search and structured transfer intent.
-- [ ] P06 — One-time grants, standing grants, expiry, revocation, and readable permissions UI.
+- [x] P06 — One-time grants, standing grants, expiry, revocation, and readable permissions UI.
 - [ ] P07 — Trusted transfer controller, execution binding, idempotency, and uncertain-outcome reconciliation.
 - [ ] P08 — Real email adapter and verified recipient-bound download flow.
-- [ ] P09 — Authenticated incoming requests, partial fulfillment, and private failure handling.
-- [ ] P10 — Receipts, accurate statuses, transfer history, and global/per-contact pause.
-- [ ] P11 — Atomic quota reservations, usage ledger, reset periods, and plan configuration.
+- [x] P09 — Authenticated incoming requests, partial fulfillment, and private failure handling.
+- [x] P10 — Receipts, accurate statuses, transfer history, and global/per-contact pause.
+- [x] P11 — Atomic quota reservations, usage ledger, reset periods, and plan configuration.
 - [ ] P12 — Billing checkout, verified webhooks, portal, lifecycle tests, and reconciliation.
 - [ ] P13 — Export/deletion/retention behavior and clear privacy/permission disclosures.
 - [ ] P14 — Optional local-folder, messaging, voice, and Vexo adapters, each independently verified.
@@ -528,15 +588,15 @@ Canonical tracker: repository `product.md`. The supplied Downloads copy is synch
 
 - [ ] A01 — Durable jobs/events, retry limits, deduplication, trace IDs, and restart recovery.
 - [ ] A02 — Naïve credentials, actual role sessions, scoped tools, and provider cost/session evidence.
-- [ ] A03 — First-party feedback intake and subreddit review invitation.
+- [x] A03 — First-party feedback intake and subreddit review invitation.
 - [ ] A04 — Approved Reddit/review connector with consent, provenance, deletion handling, and rate limits.
 - [ ] A05 — Feedback clustering, triage, prioritization, and bounded work specifications.
 - [ ] A06 — Isolated builder with synthetic data and no production credentials.
 - [ ] A07 — Independent baseline tests, protected-path enforcement, and release eligibility checks.
 - [ ] A08 — Real preview, trusted deployment, feature flags, regression monitoring, and rollback.
 - [ ] A09 — Requester notifications and post-release usage measurement.
-- [ ] A10 — Source research, structured claim ledger, and factual verification for marketing.
-- [ ] A11 — Deterministic carousel renderer, mobile-quality checks, captions, and final-slide CTA.
+- [x] A10 — Source research, structured claim ledger, and factual verification for marketing.
+- [x] A11 — Deterministic carousel renderer, mobile-quality checks, captions, and final-slide CTA.
 - [ ] A12 — Instagram authorization, supported publishing adapter, deduplication, and publish evidence.
 - [ ] A13 — Campaign attribution and observed activation/retention/conversion reporting.
 - [ ] A14 — Routine support agent, authorized diagnostics, escalation, and notification preferences.
@@ -546,11 +606,11 @@ Canonical tracker: repository `product.md`. The supplied Downloads copy is synch
 
 ### Verification and launch
 
-- [ ] V01 — Cross-tenant search, excerpt, download, and transfer access tests.
-- [ ] V02 — Wrong/ambiguous recipient, spoofed request, endpoint-change, expiry, and revoked-grant tests.
-- [ ] V03 — Document/review/web-page prompt-injection and private-data exfiltration tests.
-- [ ] V04 — Duplicate webhook/job, concurrency/quota, retry, and provider-timeout tests.
-- [ ] V05 — Billing renewal, downgrade, cancellation, failed payment, and out-of-order event tests.
+- [x] V01 — Cross-tenant search, excerpt, download, and transfer access tests.
+- [x] V02 — Wrong/ambiguous recipient, spoofed request, endpoint-change, expiry, and revoked-grant tests.
+- [x] V03 — Document/review/web-page prompt-injection and private-data exfiltration tests.
+- [x] V04 — Duplicate webhook/job, concurrency/quota, retry, and provider-timeout tests.
+- [x] V05 — Billing renewal, downgrade, cancellation, failed payment, and out-of-order event tests.
 - [ ] V06 — Builder cannot alter authority/CI or read production data; trusted release baseline remains intact.
 - [ ] V07 — Marketing fails closed on unsupported claims, missing permissions, and duplicate publication.
 - [ ] V08 — Budget exhaustion, provider outage, global pause, restart recovery, and rollback tests.
@@ -563,17 +623,17 @@ These are external authority/account decisions, not requests to describe the cod
 
 | ID | Action requiring founder/external authority | Dependency / done evidence | Initial status |
 | --- | --- | --- | --- |
-| F01 | Confirm name/domain and public support identity | Chosen settings and DNS/account control | Unverified |
-| F02 | Authorize Naïve and other paid providers; set spending caps | Secret references, limits, successful scoped test | Unverified |
-| F03 | Authorize sending domain/mailbox and required email configuration | Verified sender and successful real send | Unverified |
-| F04 | Create/identify product subreddit and obtain approved commercial API use | Approved use case and scoped credentials; own form works meanwhile | Unverified |
-| F05 | Connect the Instagram professional account and publishing permissions | Valid account authorization and successful permitted publish | Unverified |
-| F06 | Activate payment account and approve live billing | Operator activation; verified prices, terms, webhook, portal | Unverified |
-| F07 | Approve pricing experiment and published storage/size/bandwidth/fair-use terms | Versioned plan policy; no hidden unlimited cap | Unverified |
-| F08 | Approve privacy/retention, support/refund policy, and necessary legal/account obligations | Published accurate policies and tested controls | Unverified |
-| F09 | Invite attendees and collect voluntary real feedback | Attributed genuine feedback, with private data excluded | Unverified |
-| F10 | Approve autonomous release boundaries, posting cadence, and emergency contact | Versioned operator policy outside builder control | Unverified |
-| F11 | Obtain optional local-device/Vexo access | Verified documented interface and explicit permissions | Unverified |
+| F01 | Confirm name/domain and public support identity | Chosen settings and DNS/account control | blocked |
+| F02 | Authorize Naïve and other paid providers; set spending caps | Secret references, limits, successful scoped test | blocked |
+| F03 | Authorize sending domain/mailbox and required email configuration | Verified sender and successful real send | blocked |
+| F04 | Create/identify product subreddit and obtain approved commercial API use | Approved use case and scoped credentials; own form works meanwhile | blocked |
+| F05 | Connect the Instagram professional account and publishing permissions | Valid account authorization and successful permitted publish | blocked |
+| F06 | Activate payment account and approve live billing | Operator activation; verified prices, terms, webhook, portal | blocked |
+| F07 | Approve pricing experiment and published storage/size/bandwidth/fair-use terms | Versioned plan policy; no hidden unlimited cap | blocked |
+| F08 | Approve privacy/retention, support/refund policy, and necessary legal/account obligations | Published accurate policies and tested controls | blocked |
+| F09 | Invite attendees and collect voluntary real feedback | Attributed genuine feedback, with private data excluded | blocked |
+| F10 | Approve autonomous release boundaries, posting cadence, and emergency contact | Versioned operator policy outside builder control | blocked |
+| F11 | Obtain optional local-device/Vexo access | Verified documented interface and explicit permissions | deferred |
 
 Company formation, account verification, contractual approvals, disputed payments, incidents requiring accountable judgment, and changes to delegated authority may still require a person. Track these honestly. “Fully automated” means routine work inside an approved operating boundary, not the absence of a responsible owner.
 

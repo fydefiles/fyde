@@ -1,0 +1,76 @@
+# Operator-supplied secret files are outside the checkout. No builder mounts customer volumes.
+services:
+  web:
+    image: ${FYDE_IMAGE:?Set an immutable approved image}
+    restart: unless-stopped
+    env_file: /etc/fyde/web.env
+    environment:
+      FYDE_LOAD_DOTENV: '0'
+      RELEASE_SHA: ${RELEASE_SHA:?Set source revision}
+      FYDE_VAR_DIR: /data
+    volumes:
+      - private-files:/data/private
+      - marketing-assets:/data/marketing:ro
+    ports: ['127.0.0.1:8000:8000']
+    read_only: true
+    tmpfs: ['/tmp:mode=1777,size=128m', '/data:uid=10001,gid=10001,mode=700,size=16m']
+    security_opt: ['no-new-privileges:true']
+    cap_drop: [ALL]
+    mem_limit: 768m
+  delivery:
+    image: ${FYDE_IMAGE}
+    command: ['python', 'manage.py', 'run_delivery']
+    restart: unless-stopped
+    env_file: /etc/fyde/delivery.env
+    environment:
+      FYDE_LOAD_DOTENV: '0'
+      FYDE_VAR_DIR: /data
+    volumes: ['private-files:/data/private']
+    tmpfs: ['/tmp:mode=1777,size=128m', '/data:uid=10001,gid=10001,mode=700,size=16m']
+    security_opt: ['no-new-privileges:true']
+    cap_drop: [ALL]
+    mem_limit: 768m
+  bridge:
+    image: ${FYDE_IMAGE}
+    command: ['python', 'manage.py', 'run_bridge']
+    restart: unless-stopped
+    env_file: /etc/fyde/bridge.env
+    environment:
+      FYDE_LOAD_DOTENV: '0'
+      FYDE_VAR_DIR: /tmp/bridge
+    tmpfs: ['/tmp:mode=1777,size=128m']
+    security_opt: ['no-new-privileges:true']
+    cap_drop: [ALL]
+    mem_limit: 256m
+  company:
+    image: ${FYDE_IMAGE}
+    command: ['python', 'manage.py', 'run_company']
+    restart: unless-stopped
+    env_file: /etc/fyde/company.env
+    environment:
+      DJANGO_SETTINGS_MODULE: fyde.company_settings
+      COMPANY_WORKFLOW_ROLE: development
+      FYDE_VAR_DIR: /company
+    volumes: ['company-work:/company']
+    tmpfs: ['/tmp:mode=1777,size=128m']
+    security_opt: ['no-new-privileges:true']
+    cap_drop: [ALL]
+    mem_limit: 512m
+  marketing:
+    image: ${FYDE_IMAGE}
+    command: ['python', 'manage.py', 'run_company']
+    restart: unless-stopped
+    env_file: /etc/fyde/marketing.env
+    environment:
+      DJANGO_SETTINGS_MODULE: fyde.company_settings
+      COMPANY_WORKFLOW_ROLE: marketing
+      FYDE_VAR_DIR: /company
+    volumes: ['marketing-assets:/company/marketing']
+    tmpfs: ['/tmp:mode=1777,size=128m', '/company/no-customer-storage:mode=700,size=1m']
+    security_opt: ['no-new-privileges:true']
+    cap_drop: [ALL]
+    mem_limit: 512m
+volumes:
+  private-files:
+  marketing-assets:
+  company-work:

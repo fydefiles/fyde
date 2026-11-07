@@ -1,0 +1,11 @@
+{
+  "version": "2026-11-07",
+  "currency": "usd",
+  "meter": "One file version accepted by the delivery provider for one recipient counts as one send. Idempotent retries and reopening a link do not count again. Definitive delivery failures reverse the send once. Local test sends use a separate fixture ledger.",
+  "resource_policy": "Uploads: 25 MiB per file. Download bandwidth is a separate monthly resource limit, reserved on each actual download. Unlimited has no file-send count cap. No overage charges. Exceeding a resource limit pauses the affected action and keeps export available. Cancellation retains files; deletion is owner initiated. These limits are experimental.",
+  "plans": {
+    "free": {"name": "Free", "monthly_usd": 0, "sends": 10, "storage_mib": 250, "bandwidth_mib": 1024, "file_mib": 25, "model_usd": 0},
+    "plus": {"name": "Plus", "monthly_usd": 5, "sends": 500, "storage_mib": 5120, "bandwidth_mib": 20480, "file_mib": 25, "model_usd": 0},
+    "unlimited": {"name": "Unlimited", "monthly_usd": 20, "sends": null, "storage_mib": 20480, "bandwidth_mib": 102400, "file_mib": 25, "model_usd": 0}
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "sections": [
+    {"id": "getting-started", "title": "Send your first file", "body": "Upload a file, add a contact, and verify both email addresses. Then type Send my résumé to John. Fyde checks the exact version and permission before queueing delivery."},
+    {"id": "permissions", "title": "Choose what can be shared", "body": "Standing permissions cover the selected version, contact, purpose, and expiry. They exclude future versions. Sensitive files need explicit permission. You can pause sharing or revoke a link at any time."},
+    {"id": "receipts", "title": "Read the receipt", "body": "Queued means Fyde is waiting to send. Provider accepted means the email service accepted the message. Verified recipient access means the recipient passed verification and started a download. A downloaded copy cannot be recalled."},
+    {"id": "requests", "title": "Let a contact request documents", "body": "Create a standing permission and share the contact's request link. After email verification, they can request permitted versions for the specified purpose. Out-of-scope items stay private."},
+    {"id": "pricing", "title": "Understand send limits", "body": "One file version accepted by the email provider for one recipient counts as one send. Searches and rejected requests do not count. Storage, file size, download bandwidth, and model budgets have separate limits shown on the pricing page."}
+  ]
+}

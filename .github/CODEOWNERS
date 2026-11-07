@@ -1,0 +1,3 @@
+# Company agents can modify only content/help.json. Trusted paths require the repository owner.
+* @mehmetuzgoren
+/content/help.json

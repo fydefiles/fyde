@@ -1,0 +1,43 @@
+{
+  "mode": "fixture",
+  "genuine_attendee_feedback": false,
+  "feedback_id": "ce16121c-b6dc-4f4b-ae9f-b29a5fc8a369",
+  "work_id": "53c78c95-7a7b-4bd9-b220-8efb08afe3d1",
+  "job_id": "a45d8107-71e2-4a27-b65f-dfa990125188",
+  "job_status": "succeeded",
+  "work_status": "verified",
+  "commit": "a90a4021a1d5cf4d4d62e879f03c47489416a06d",
+  "provider_session": null,
+  "evidence": {
+    "gate": {
+      "changed_sections": [
+        "receipts"
+      ],
+      "sha256": "bb745ac67d727c3174188da94044736610d55071b3695d596dd660f0d011ca0a",
+      "allowed_paths": [
+        "content/help.json"
+      ]
+    },
+    "verification": {
+      "engine": "docker",
+      "image": "sha256:2cd35d3b27ba2fce00bcb8d8f6cde39c055fb57c512bf7c710cc1a8de01fb7b3",
+      "baseline_sha": "a640010024d49b3829cc568d579b039ce8c15874",
+      "command": "python manage.py test tests --noinput",
+      "exit_code": 0,
+      "log_sha256": "d0976ee8ae35fea4a4e3474030698420d0c2421f98f7bc53de8f106f1036dec8",
+      "summary": "Found 29 test(s).\nSystem check identified no issues (0 silenced).\nCreating test database for alias 'default'...\nCreating test database for alias 'company'...\n.Bad Request: /webhooks/stripe/\n.............Forbidden (CSRF cookie not set.): /app/command/\n.Forbidden: /access/cbd8f11b-bf2a-49ad-a8e3-654c064f09ef/\n.Forbidden: /access/ecc3f294-6525-4215-be96-7a939fda747b/\n.........Not Found: /app/documents/c978963d-937e-45a5-96a8-561f956385ec/\nNot Found: /app/versions/79402b4d-06eb-49f4-9d02-952c2606a4dd/download/\nNot Found: /app/command/\n..Bad Request: /verify/[redacted]/\nBad Request: /verify/[redacted]/\nBad Request: /verify/[redacted]/\nBad Request: /verify/[redacted]/\nBad Request: /verify/[redacted]/\nBad Request: /verify/[redacted]/\nBad Request: /verify/[redacted]/\n.s\n----------------------------------------------------------------------\nRan 29 tests in 11.445s\n\nOK (skipped=1)\nDestroying test database for alias 'default'...\nDestroying test database for alias 'company'...\n",
+      "network": "none",
+      "customer_data_mounted": false,
+      "verified_at": "2026-11-07T23:09:55.893181+00:00"
+    },
+    "baseline_sha": "a640010024d49b3829cc568d579b039ce8c15874",
+    "provider": "local_fixture",
+    "session_id": null
+  },
+  "blocker": "",
+  "release_status": "blocked",
+  "release_failure_code": "fixture_release_forbidden",
+  "human_interventions": [
+    "Implementation agent prepared a synthetic feedback record and predetermined fixture proposal; no genuine attendee or Na\u00efve builder is claimed."
+  ]
+}

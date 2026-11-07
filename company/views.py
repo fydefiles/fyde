@@ -113,7 +113,20 @@ def dashboard(request):
             .order_by("-created_at")
             .first()
         )
-        aggregates[mode] = row.payload if row else None
+        aggregates[mode] = (
+            row.payload
+            if row
+            else {
+                key: None
+                for key in (
+                    "activated",
+                    "accepted_sends",
+                    "recipient_downloads_started",
+                    "repeat_senders",
+                    "observed_at",
+                )
+            }
+        )
     readiness = [
         (
             "Email",

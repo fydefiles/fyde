@@ -54,7 +54,12 @@ def add_file(owner, upload, *, title="", tags="", sensitive=False, document_id=N
                 target.write(chunk)
         with transaction.atomic():
             User.objects.select_for_update().get(pk=owner.pk)
-            used = FileVersion.objects.filter(document__owner=owner).aggregate(n=Sum("size"))["n"] or 0
+            used = (
+                FileVersion.objects.filter(document__owner=owner, document__deleted_at=None).aggregate(
+                    n=Sum("size")
+                )["n"]
+                or 0
+            )
             if used + actual > plan["storage_mib"] * 1024 * 1024:
                 raise PolicyError(
                     "storage_limit", "Your storage allowance is full. Export or delete files first."

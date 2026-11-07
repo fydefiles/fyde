@@ -124,7 +124,10 @@ def dashboard_context(request, **extra):
         .order_by("-created_at")[:30],
         "upload_form": UploadForm(owner),
         "contact_form": ContactForm(),
-        "storage_bytes": FileVersion.objects.filter(document__owner=owner).aggregate(n=Sum("size"))["n"] or 0,
+        "storage_bytes": FileVersion.objects.filter(
+            document__owner=owner, document__deleted_at=None
+        ).aggregate(n=Sum("size"))["n"]
+        or 0,
     }
     context.update(extra)
     return context

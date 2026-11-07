@@ -419,3 +419,22 @@ class ExchangeJourney(TestCase):
         self.assertEqual(blocked.exception.code, "fixture_identity")
         self.assertEqual(Transfer.objects.count(), 0)
         self.assertEqual(Mail.objects.count(), 0)
+
+    def test_deleting_original_bytes_revokes_access_and_releases_storage_allowance(self):
+        policy = {"file_mib": 1, "storage_mib": 1}
+        with patch("exchange.storage.entitlement", return_value=("free", policy, None)):
+            large = self.file("Large.txt", b"A" * (512 * 1024))
+            original_path = Path(self.folder.name) / large.blob_key
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.client.post(
+                    reverse("document", args=[large.document_id]),
+                    {"action": "delete", "password": "Synthetic-password-728!"},
+                )
+            self.assertEqual(response.status_code, 302)
+            self.assertFalse(original_path.exists())
+            self.assertEqual(self.client.get(reverse("owner_download", args=[large.pk])).status_code, 404)
+            large.refresh_from_db()
+            self.assertEqual(large.extracted_text, "")
+            # The retained audit/version metadata must not consume storage after the bytes are deleted.
+            replacement = self.file("Replacement.txt", b"B" * (600 * 1024))
+            self.assertEqual(replacement.state, "ready")

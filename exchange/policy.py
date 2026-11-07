@@ -128,7 +128,10 @@ def reserve_quota(owner):
     if plan["sends"] is not None:
         condition = condition.filter(consumed__lt=plan["sends"] - F("reserved"))
     if not condition.update(reserved=F("reserved") + 1):
-        raise PolicyError("quota_exceeded", "Your monthly send allowance is used. No send was charged.")
+        raise PolicyError(
+            "quota_exceeded",
+            "Your monthly allowance is used or reserved by queued sends. Cancel an unsent transfer to release its reservation.",
+        )
     return period
 
 

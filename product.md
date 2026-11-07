@@ -529,7 +529,7 @@ Stripe checkout, persisted checkout idempotency, customer portal, signature-veri
 
 Marketing research fetched current Google and Dropbox primary documentation and verified the catalog's exact support anchors. Carousel `cf2d1834-26e9-428f-be68-c6dbe0925a8a` has six rendered 1080×1350 JPEG slides, per-asset hashes and alt descriptions, caption, source ledger, measured template contrast of at least 6.45:1, and a local-product CTA. Package: `var/marketing/<carousel-id>/ready-to-publish.zip`; preview: `artifacts/evidence/carousel-contact-sheet.jpg`. Publication remains blocked on F05 and a public HTTPS destination. No post, engagement, or conversion is fabricated. First-party campaign visit/signup/activation measurement is implemented; revenue and cross-device attribution remain unknown.
 
-PostgreSQL verification passed 28 database-backed journeys, including a real two-thread race for the last free quota unit. The test exposed a PostgreSQL nullable-join locking incompatibility in verification; the implementation now locks the Challenge row explicitly. Subsequent checks preserve original receipt destinations and retain quota for revoked sends with uncertain provider outcomes. Docker image build completed locally. The production-settings system check has only the intentional HSTS preload notice; local development mode emits the expected secure-cookie/HTTPS notices.
+PostgreSQL verification passed 29 database-backed journeys, including a real two-thread race for the last free quota unit. The test exposed a PostgreSQL nullable-join locking incompatibility in verification; the implementation now locks the Challenge row explicitly. Subsequent checks preserve original receipt destinations and retain quota for revoked sends with uncertain provider outcomes. Docker image build completed locally. The production-settings system check has only the intentional HSTS preload notice; local development mode emits the expected secure-cookie/HTTPS notices.
 
 #### Current implementation status (supersedes the initial inspection table)
 
@@ -550,7 +550,7 @@ PostgreSQL verification passed 28 database-backed journeys, including a real two
 | A03 | verified | Consent-based in-app public/private feedback intake; conditional subreddit invitation | F04 needed for real subreddit link |
 | A04 | blocked | Reddit automation deliberately disabled pending commercial approval; no actual app listings exist | F04 approval and supported connector implementation |
 | A05 | in_progress | Deterministic clustering, existing-function checks, priorities and content-only acceptance specs | Validate choices on genuine attendee feedback; F09 |
-| A06–A07 | in_progress | Isolated content builder, fixed JSON gate, immutable verifier and protected CI controls implemented | Exercise actual isolated fixture build; then configure F02/F10 |
+| A06–A07 | verified | A fixture generated a content-only commit in an isolated Git worktree and passed the fixed application suite in an immutable Docker container with no network or customer mounts; see `artifacts/evidence/isolated-company-build.json` | Live Naïve execution and hosted release still require F02/F10 |
 | A08 | blocked | Trusted PR/release controller and disabled deployment/rollback templates exist | F01/F10 host, environment, protected checks, constrained credentials; hosted rollback unverified |
 | A09 | in_progress | Deduplicated requester notifications, truthful blocked-state notices and aggregate help-use events | A real verified release is required for shipped notification evidence |
 | A10–A11 | verified | Primary-source fetch/hash/anchors; six slides, caption, alt descriptions, layout checks and final CTA rendered and inspected | Re-render CTA after public domain activation |
@@ -565,7 +565,15 @@ PostgreSQL verification passed 28 database-backed journeys, including a real two
 | V09 | blocked | Fixtures are labeled; no attendee feedback is represented as genuine | F09 and real protected release/delivery |
 | V10 | in_progress | README, env example, deployment/operations/economics docs and honest adapter states exist | Finish public-launch blockers before activation |
 
-External spend in this implementation session: no paid provider action observed. Docker and test operations used local resources; provider research was read-only. No live revenue exists. Founder actions F01–F10 remain blocked on the account/control decisions described in §16; F11 is deferred. The next unblocked task is independent sandbox execution, GitHub development checks/delivery, responsive inspection, and final evidence reconciliation.
+External spend in this implementation session: no paid provider action observed. Docker and test operations used local resources; provider research was read-only. No live revenue exists. Founder actions F01–F10 remain blocked on the account/control decisions described in §16; F11 is deferred. Independent sandbox execution and responsive inspection are now complete. The next unblocked task is GitHub development checks/delivery and final evidence reconciliation.
+
+### Milestone 3: independent build evidence and development delivery
+
+The actual fixture feedback → triage → isolated content patch → independent verification path completed. Work `53c78c95-7a7b-4bd9-b220-8efb08afe3d1` produced local commit `a90a4021a1d5cf4d4d62e879f03c47489416a06d` against baseline `a640010024d49b3829cc568d579b039ce8c15874`. Immutable verifier image `sha256:2cd35d3b27ba2fce00bcb8d8f6cde39c055fb57c512bf7c710cc1a8de01fb7b3` passed the 29-journey suite with SQLite's single PostgreSQL-only concurrency test skipped. That concurrency check separately passed on PostgreSQL. No customer volumes, host home, production secrets, or network were available to the verifier. Evidence: `artifacts/evidence/isolated-company-build.json`.
+
+The trusted release controller rejected the fixture with `fixture_release_forbidden`. No live PR, publication, customer message, or deployment was created from synthetic demand. Genuine attendee milestone M3 remains blocked. The implementation PR is [#1](https://github.com/mehmetuzgoren/fyde/pull/1), targeting dev. Initial CI exposed a service-container quoting error before tests could run; that configuration is corrected. The original HTTPS OAuth push lacked workflow scope; the existing authorized SSH identity successfully pushed the workflows without changing credentials or access controls.
+
+Browser QA exercised the complete local send/download workflow and inspected both 1280-pixel desktop and 375-pixel mobile layouts. The mobile document width matched its viewport. The carousel page shows the actual source ledger, full package, blocked publication, unknown post ID and unknown performance. Screenshots are in `artifacts/evidence/`. There is no hosted deployment and no main promotion.
 
 ### Product and delivery
 
@@ -591,8 +599,8 @@ External spend in this implementation session: no paid provider action observed.
 - [x] A03 — First-party feedback intake and subreddit review invitation.
 - [ ] A04 — Approved Reddit/review connector with consent, provenance, deletion handling, and rate limits.
 - [ ] A05 — Feedback clustering, triage, prioritization, and bounded work specifications.
-- [ ] A06 — Isolated builder with synthetic data and no production credentials.
-- [ ] A07 — Independent baseline tests, protected-path enforcement, and release eligibility checks.
+- [x] A06 — Isolated builder with synthetic data and no production credentials.
+- [x] A07 — Independent baseline tests, protected-path enforcement, and release eligibility checks.
 - [ ] A08 — Real preview, trusted deployment, feature flags, regression monitoring, and rollback.
 - [ ] A09 — Requester notifications and post-release usage measurement.
 - [x] A10 — Source research, structured claim ledger, and factual verification for marketing.

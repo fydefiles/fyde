@@ -1,6 +1,7 @@
 from datetime import timedelta
 import os
 
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -134,7 +135,15 @@ def tick(release_worker=False):
 
     if not release_worker:
         if role in ("all", "development"):
-            enqueue("operations", f"operations/{timezone.now():%Y-%m-%d-%H}", {}, "live")
+            enqueue(
+                "operations",
+                f"operations/{timezone.now():%Y-%m-%d-%H}",
+                {},
+                os.environ.get(
+                    "COMPANY_DATA_MODE",
+                    "fixture" if settings.DEBUG else "live",
+                ),
+            )
         if role in ("all", "marketing") and os.environ.get("MARKETING_AUTORUN") == "1":
             enqueue("marketing", f"marketing/{timezone.now():%Y-%m-%d}", {}, "live")
             from .models import Publication

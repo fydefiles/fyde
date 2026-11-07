@@ -61,7 +61,14 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         for key, (title, action) in ACTIONS.items():
-            FounderAction.objects.get_or_create(key=key, defaults={"title": title, "exact_action": action})
+            FounderAction.objects.get_or_create(
+                key=key,
+                defaults={
+                    "title": title,
+                    "exact_action": action,
+                    "status": "deferred" if key == "F11" else "blocked",
+                },
+            )
         if options["demo"]:
             if not settings.DEBUG or settings.EMAIL_ADAPTER != "local":
                 raise CommandError("Demo accounts are restricted to the local fixture adapter.")

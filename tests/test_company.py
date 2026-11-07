@@ -219,3 +219,16 @@ class CompanyJourneys(TestCase):
         self.assertEqual(aggregate.payload["campaigns"][0]["signups"], 1)
         self.assertEqual(aggregate.payload["campaigns"][0]["activated_senders"], 0)
         self.assertIsNone(aggregate.payload["campaigns"][0]["paid_conversion"])
+
+    def test_operator_metrics_keep_fixtures_out_of_live_autonomy_and_count_blocked_work(self):
+        self.owner.is_staff = True
+        self.owner.save(update_fields=["is_staff"])
+        Job.objects.create(
+            kind="operations", dedupe_key="fixture-success", status="succeeded", data_mode="fixture"
+        )
+        Job.objects.create(kind="build", dedupe_key="live-block", status="blocked", data_mode="live")
+        page = self.client.get(reverse("company_dashboard"))
+        self.assertEqual(page.status_code, 200)
+        self.assertEqual(page.context["all_jobs"], 1)
+        self.assertEqual(page.context["attempted"], 1)
+        self.assertEqual(page.context["completed"], 0)

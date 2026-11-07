@@ -100,9 +100,9 @@ def withdraw_feedback(request, feedback_id):
 @staff_member_required(login_url="/login/")
 def dashboard(request):
     counts = {r["status"]: r["n"] for r in Job.objects.values("status").annotate(n=Count("pk"))}
-    all_jobs = Job.objects.count()
+    all_jobs = Job.objects.filter(data_mode="live").count()
     # Every observed job remains in the eligibility denominator, including blocks and failures.
-    eligible_jobs = Job.objects.all()
+    eligible_jobs = Job.objects.filter(data_mode="live")
     eligible = eligible_jobs.count()
     attempted = eligible_jobs.exclude(status="queued").count()
     completed = eligible_jobs.filter(status="succeeded", human_interventions=0).count()

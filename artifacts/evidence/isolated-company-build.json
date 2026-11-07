@@ -36,5 +36,8 @@
   },
   "blocker": "",
   "release_status": "blocked",
-  "release_failure_code": "fixture_release_forbidden"
+  "release_failure_code": "fixture_release_forbidden",
+  "human_interventions": [
+    "Implementation agent prepared a synthetic feedback record and predetermined fixture proposal; no genuine attendee or Na\u00efve builder is claimed."
+  ]
 }

@@ -4,10 +4,12 @@
   "postgres_integration": {
     "command": "python manage.py test tests --noinput",
     "result": "passed",
-    "tests": 29,
+    "tests": 32,
     "skipped": 0,
     "database": "PostgreSQL 17 in task-owned local Docker container",
-    "last_quota_unit_concurrency": "two threads; one accepted reservation, one quota_exceeded"
+    "last_quota_unit_concurrency": "two threads; one accepted reservation, one quota_exceeded",
+    "revision": "86dd1027e8457fa5f3c546700ad499729b726ed8",
+    "evidence_url": "https://github.com/mehmetuzgoren/fyde/actions/runs/42424956553"
   },
   "browser": {
     "sign_in": "passed",
@@ -17,7 +19,11 @@
     "recipient_verification": "passed",
     "download": "passed",
     "source_and_download_sha256": "c3aa5c984c597020c6f9b698b79bfe44783284e8c44f775fba38c5297976d795",
-    "live_email": false
+    "live_email": false,
+    "responsive_viewports": [
+      1280,
+      375
+    ]
   },
   "marketing": {
     "primary_source_fetch": "actual HTTP GET",
@@ -49,6 +55,24 @@
     "genuine attendee release blocked",
     "hosting and provider accounts missing",
     "refund/revenue reconciliation incomplete",
-    "full account deletion/backup erasure incomplete"
-  ]
+    "full account deletion/backup erasure incomplete",
+    "Local fixture identity cannot authorize live-provider delivery"
+  ],
+  "github_controls": {
+    "dev_protected": true,
+    "strict_required_checks": [
+      "integration",
+      "release-boundary"
+    ],
+    "admin_enforcement": true,
+    "force_pushes": false,
+    "deletions": false,
+    "automatic_hosted_deployment_enabled": false
+  },
+  "isolated_fixture_build": {
+    "evidence": "isolated-company-build.json",
+    "result": "passed at its pinned baseline",
+    "real_attendee_feedback": false,
+    "live_release": "rejected"
+  }
 }

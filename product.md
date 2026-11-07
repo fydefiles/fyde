@@ -575,6 +575,14 @@ The trusted release controller rejected the fixture with `fixture_release_forbid
 
 Browser QA exercised the complete local send/download workflow and inspected both 1280-pixel desktop and 375-pixel mobile layouts. The mobile document width matched its viewport. The carousel page shows the actual source ledger, full package, blocked publication, unknown post ID and unknown performance. Screenshots are in `artifacts/evidence/`. There is no hosted deployment and no main promotion.
 
+### Final verified delivery gates, November 7, 2026
+
+[GitHub Actions](https://github.com/mehmetuzgoren/fyde/actions/runs/42424956553) passed all **32 PostgreSQL integration journeys**, lint, migration-drift and application checks on revision `86dd1027e8457fa5f3c546700ad499729b726ed8`. Both required checks, `integration` and `release-boundary`, passed. The new checks cover fixture-to-live identity rejection, deletion/storage accounting, and exclusion of synthetic jobs from live autonomy metrics. This is source/integration evidence, not proof of a deployed service.
+
+GitHub dev protection is active: strict current-head checks, admin enforcement, linear history, and no force pushes or branch deletion. [PR #1](https://github.com/mehmetuzgoren/fyde/pull/1) is the authoritative development delivery record. No production/main merge is authorized. The hosted deployment job is intentionally disabled until the hosting environment and constrained credentials exist. A local synthetic candidate worktree is retained under `var/company-work` solely for its isolated-build evidence; it is not attendee work and cannot release live. The implementation chat's feature worktree is eligible for recoverable retirement once GitHub confirms the dev merge.
+
+The complete available result is a locally usable file-sharing application, database-backed company workflows with a verified isolated fixture build, configurable plans/billing integration, and an actual source-backed carousel package. The next highest-priority external step is F03 plus F01: authorize a verified sender and budget, configure public HTTPS hosting, and complete one real email/recipient-access smoke journey. Then F02/F10 and F09 enable a genuine attendee feedback-to-release cycle; F05 enables the authorized Instagram publication. Broad semantic conversation, Reddit ingestion, full account deletion/backup erasure, refund/revenue reconciliation, and sustained hosted rollback remain incomplete, as recorded above.
+
 ### Product and delivery
 
 - [x] P01 — Inspect existing implementation, preserve working stack, and record architecture decisions.

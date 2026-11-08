@@ -49,7 +49,7 @@ export default function ChatScreen({
       channel: Channel;
     } | null>(null);
   useEffect(() => {
-    if (!busy) scroll.current?.scrollToEnd({ animated: false });
+    if (!busy && turns.length) scroll.current?.scrollToEnd({ animated: false });
   }, [turns, busy]);
   async function submit(message = text, choice?: Choice) {
     if (busy || !message.trim()) return;

@@ -5,7 +5,7 @@ Fyde opens in chat on the web and in the Expo React Native client. Both use the 
 ## First use
 
 1. Create two accounts: a file owner and a recipient. Verify their email addresses. With the local adapter, use each account's labeled test outbox; no real email is sent.
-2. First-use onboarding opens automatically. Create a case, such as “Immigration case,” and choose multiple files. Each file uploads separately, with its own result and safety checks. Supported formats and plan limits still apply; the app cannot import every local folder automatically.
+2. First-use onboarding opens automatically. Create a case, such as “Immigration case,” and choose multiple files. Each file uploads separately, with its own result and safety checks. Native uploads use temporary named File Blobs compatible with Expo fetch and remove those copies after the attempt. Supported formats and plan limits still apply; the app cannot import every local folder automatically.
 3. Assign each file to its case and document type. Mark sensitive files explicitly. A filename or relationship label cannot authorize disclosure.
 4. Add the recipient's verified email and a relationship label, such as “Lawyer.” This label helps resolve chat instructions. It does not verify professional credentials or create a permission.
 5. Review an automatic case permission: recipient, case, document types, channel, expiry and request limit. Future files, future versions and sensitive files are separate choices. Explicitly enable the reviewed scope once.
@@ -37,7 +37,7 @@ For local iOS development, install Xcode, CocoaPods and an available simulator r
 
 `npm run bundle` compiles production iOS, Android and web JavaScript/Hermes bundles. `eas.json` includes simulator, internal-preview and production profiles. EAS, signing, store upload and paid cloud builds have not been activated. The `app.fyde.mobile` application identifiers are provisional and must be confirmed before distribution. `EXPO_PUBLIC_*` values are public build configuration; never put secrets in them.
 
-An unsigned iOS simulator build can be produced locally after native generation and CocoaPods installation:
+Build locally with Xcode’s default simulator signing after native generation and CocoaPods installation:
 
 ```sh
 npx expo prebuild --platform ios --no-install
@@ -45,10 +45,10 @@ COCOAPODS_DISABLE_STATS=1 pod install --project-directory=ios
 xcodebuild -workspace ios/Fyde.xcworkspace -scheme Fyde \
   -configuration Debug -sdk iphonesimulator \
   -destination 'generic/platform=iOS Simulator' \
-  -derivedDataPath ios/build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+  -derivedDataPath ios/build build
 ```
 
-This Debug build needs the Expo Metro server for its JavaScript. The local build used Xcode 27, whose simulator interface is [Device Hub](https://developer.apple.com/documentation/xcode/managing-your-simulated-and-physical-devices-in-device-hub). A simulator binary is not an installable signed iPhone release. Platform QA and distribution evidence are recorded separately in `product.md`.
+Keep simulator signing enabled. The unsigned package launched but SecureStore failed with “A required entitlement isn’t present.” Xcode’s simulator signing supplies the application identity used by Keychain; do not replace secure storage with plaintext to work around a packaging error. This Debug build needs the Expo Metro server for its JavaScript. The local build used Xcode 27, whose simulator interface is [Device Hub](https://developer.apple.com/documentation/xcode/managing-your-simulated-and-physical-devices-in-device-hub). A simulator binary is not an installable signed iPhone release. Platform QA and distribution evidence are recorded separately in `product.md`.
 
 ## Connect a recipient's agent
 
@@ -86,6 +86,6 @@ Case responders belong to the customer data plane. Development and marketing age
 
 ## Verification evidence
 
-`tests/test_chat_cases.py` contains eight integration journeys for the new disclosure and retry requirements. They exercise mobile setup, private multi-file uploads, case snapshots/future scope, sensitive exclusion, exact-byte downloads, owner-session-free recipient requests, cross-case and token denial, pagination, quota, chat ambiguity/context, CSRF and revocation. The existing delivery and company journeys remain in the required suite.
+`tests/test_chat_cases.py` contains ten integration journeys for the new disclosure and retry requirements. They exercise mobile setup, private multi-file uploads, case snapshots/future scope, sensitive exclusion, exact-byte downloads, owner-session-free recipient requests, cross-case and token denial, pagination, quota, chat ambiguity/context, CSRF and revocation. The existing delivery and company journeys remain in the required suite.
 
 `artifacts/evidence/case-agent-workflow.json` records a separate Docker HTTP requester that downloaded and hash-verified two synthetic case documents. The container had one case credential, the requester script and an output directory. It had no owner credential, customer database or private-storage mount. No real legal or identity documents were used.

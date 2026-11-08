@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import { View, Text, ScrollView, Platform } from "react-native";
 import * as Picker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
+import { Directory, File as NativeFile, Paths } from "expo-file-system";
 import * as Crypto from "expo-crypto";
 import type { Workspace } from "./types";
 import { Button, Choices, Field, Toggle, styles as s, C } from "./ui";
@@ -78,20 +79,24 @@ export default function SetupScreen({
       for (let i = 0; i < chosen.assets.length; i++) {
         const asset = chosen.assets[i];
         setNotice(`Uploading ${i + 1}/${chosen.assets.length}: ${asset.name}`);
-        const data = new FormData();
-        data.append(
-          "file",
-          asset.file ||
-            ({
-              uri: asset.uri,
-              name: asset.name,
-              type: asset.mimeType || "application/octet-stream",
-            } as unknown as Blob),
-        );
-        data.append("matter_id", matter);
-        data.append("document_type", type);
-        data.append("sensitive", String(sensitive));
+        let staging: Directory | undefined;
         try {
+          // Expo fetch accepts File Blobs, not React Native's older URI object.
+          // A short-lived named copy preserves the picker's original filename.
+          let file: Blob | undefined = asset.file;
+          if (Platform.OS !== "web") {
+            staging = new Directory(Paths.cache, "fyde-imports", Crypto.randomUUID());
+            staging.create({ intermediates: true });
+            const upload = new NativeFile(staging, asset.name.replace(/[/\\]/g, "_"));
+            await new NativeFile(asset.uri).copy(upload);
+            file = upload;
+          }
+          if (!file) throw new Error("Choose this file again to upload it.");
+          const data = new FormData();
+          data.append("file", file, asset.name);
+          data.append("matter_id", matter);
+          data.append("document_type", type);
+          data.append("sensitive", String(sensitive));
           await mutate("/api/v1/upload/", data);
           setProgress((old) => [
             ...old,
@@ -103,6 +108,11 @@ export default function SetupScreen({
             `${asset.name} · ${(e as Error).message}`,
           ]);
         } finally {
+          if (staging) {
+            await FileSystem.deleteAsync(staging.uri, { idempotent: true }).catch(
+              () => {},
+            );
+          }
           if (
             Platform.OS !== "web" &&
             FileSystem.cacheDirectory &&

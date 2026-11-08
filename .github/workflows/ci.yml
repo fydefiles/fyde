@@ -68,3 +68,25 @@ jobs:
           else
             echo 'Operator-authored change: integration and normal repository review apply.'
           fi
+  mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: mobile/client
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: mobile/client/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npx expo install --check
+      - run: npm audit --omit=dev --audit-level=high
+      - name: Bundle iOS, Android and web clients
+        run: npm run bundle
+        env:
+          EXPO_PUBLIC_API_URL: https://example.invalid

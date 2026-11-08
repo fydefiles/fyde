@@ -74,6 +74,7 @@ def create_transfer(owner, version, contact, operation_id, grant=None, channel=N
                 contact=contact,
                 version=version,
                 sensitive_authorized=True,
+                requests_used__lt=F("max_requests"),
                 channel=channel,
                 identity_kind=identity_kind,
                 revoked_at=None,
@@ -81,6 +82,39 @@ def create_transfer(owner, version, contact, operation_id, grant=None, channel=N
             )
             .first()
         )
+        if not grant and version.document.matter_id:
+            from .delegation import check_policy
+            from .models import StandingPolicy
+
+            for permission in StandingPolicy.objects.filter(
+                owner=owner,
+                contact=contact,
+                matter_id=version.document.matter_id,
+                channel=channel,
+                identity_kind=identity_kind,
+                include_sensitive=True,
+                revoked_at=None,
+                expires_at__gt=now,
+            ):
+                try:
+                    check_policy(permission, version=version)
+                except PolicyError:
+                    continue
+                grant = Grant.objects.create(
+                    owner=owner,
+                    contact=contact,
+                    version=version,
+                    standing_policy=permission,
+                    policy_revision=permission.revision,
+                    endpoint_revision=contact.endpoint_revision,
+                    kind="case",
+                    purpose=permission.matter.name,
+                    sensitive_authorized=True,
+                    expires_at=permission.expires_at,
+                    channel=channel,
+                    identity_kind=identity_kind,
+                )
+                break
         if not grant:
             raise PolicyError(
                 "owner_authorization_required", "Create an explicit permission for this sensitive file first."
@@ -114,7 +148,7 @@ def create_transfer(owner, version, contact, operation_id, grant=None, channel=N
         operation_id=operation_id,
         data_mode=mode,
         channel=channel,
-        binding_version=2,
+        binding_version=3,
         recipient_phone=contact.phone,
         usage_period=period,
         recipient_email=contact.email,

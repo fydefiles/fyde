@@ -152,3 +152,15 @@ LOGGING = {
         "django.server": {"handlers": ["safe_console"], "propagate": False},
     },
 }
+
+# Bearer-only native API; browser previews require an explicit allowed origin.
+CUSTOMER_API_ORIGINS = [
+    o
+    for o in os.environ.get(
+        "CUSTOMER_API_ORIGINS",
+        "http://localhost:8081,http://127.0.0.1:8081,http://localhost:8082,http://127.0.0.1:8082"
+        if DEBUG
+        else "",
+    ).split(",")
+    if o
+]

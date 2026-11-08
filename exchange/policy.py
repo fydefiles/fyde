@@ -62,6 +62,19 @@ def audit(owner, event, object_id="", decision="", **detail):
 
 
 def check_grant(grant, *, owner=None, contact=None, version=None):
+    if grant.standing_policy_id:
+        from .delegation import check_policy
+
+        policy = grant.standing_policy
+        check_policy(policy, version=version or grant.version)
+        if (
+            grant.policy_revision != policy.revision
+            or grant.owner_id != policy.owner_id
+            or grant.contact_id != policy.contact_id
+            or grant.channel != policy.channel
+            or grant.identity_kind != policy.identity_kind
+        ):
+            raise PolicyError("binding_changed", "This case permission changed. Create a new transfer.")
     now = timezone.now()
     owner = owner or grant.owner
     contact = contact or grant.contact
@@ -126,11 +139,15 @@ def execution_binding(transfer):
         values.extend(
             [transfer.channel, transfer.recipient_phone, transfer.grant.identity_kind, transfer.contact.phone]
         )
+    if transfer.binding_version >= 3:
+        values.extend([str(transfer.grant.standing_policy_id or ""), str(transfer.grant.policy_revision)])
     return hashlib.sha256(json.dumps(values, separators=(",", ":")).encode()).hexdigest()
 
 
 def check_transfer(transfer):
-    if transfer.binding_version not in (1, 2):
+    if transfer.binding_version not in (1, 2, 3) or (
+        transfer.grant.standing_policy_id and transfer.binding_version < 3
+    ):
         raise PolicyError("binding_changed", "This transfer uses an unsupported binding version.")
     if transfer.data_mode != transfer.owner.data_mode:
         raise PolicyError("mode_changed", "This transfer belongs to a different identity mode.")

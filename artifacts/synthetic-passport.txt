@@ -1,0 +1,2 @@
+Synthetic passport fixture for Fyde integration checks.
+This is not a government document and contains no real identity information.

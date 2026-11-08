@@ -24,12 +24,30 @@ def search_files(owner, query):
     terms = [
         t
         for t in re.findall(r"[\w.-]+", normalize(query))
-        if t not in {"find", "my", "latest", "the", "file", "a"}
+        if t
+        not in {
+            "find",
+            "my",
+            "latest",
+            "the",
+            "file",
+            "files",
+            "documents",
+            "document",
+            "a",
+            "all",
+            "for",
+            "about",
+            "regarding",
+            "case",
+        }
     ]
-    candidates = visible_versions(owner).select_related("document")
+    candidates = visible_versions(owner).select_related("document__matter")
     matches = []
     for version in candidates[:1000]:
-        label = normalize(f"{version.document.title} {version.original_name} {version.document.tags}")
+        label = normalize(
+            f"{version.document.title} {version.original_name} {version.document.tags} {version.document.document_type} {version.document.matter.name if version.document.matter_id else ''}"
+        )
         body = normalize(version.extracted_text)
         if not terms or all(term in label or term in body for term in terms):
             matches.append(version)
@@ -75,18 +93,20 @@ def resolve_command(owner, command, context=None):
             else []
         )
     else:
-        query = normalize(recipient_text)
+        query = re.sub(r"^(?:my|the)\s+", "", normalize(recipient_text))
         contacts = [
             c
             for c in Contact.objects.filter(owner=owner)[:1000]
             if query
             in [
                 normalize(c.name),
+                normalize(c.relationship) if c.relationship else "",
                 normalize(c.email),
                 normalize(c.phone),
                 *[normalize(a) for a in c.aliases.split(",")],
             ]
             or query in normalize(c.name).split()
+            or query in normalize(c.relationship).split()
         ]
     if len(files) != 1 or len(contacts) != 1:
         return {

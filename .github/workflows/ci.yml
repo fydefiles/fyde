@@ -135,3 +135,4 @@ jobs:
           name: fyde-web-${{ github.sha }}
           path: mobile/client/dist
       - run: npm --prefix cloudflare run check
+      - run: npm --prefix cloudflare run check:production

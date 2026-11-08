@@ -13,14 +13,47 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": true
   },
-  "secrets": { "required": ["FYDE_EDGE_KEY"] },
+  "secrets": {
+    "required": [
+      "FYDE_EDGE_KEY"
+    ]
+  },
   "observability": {
     "enabled": true,
     "redact_query_string": true,
-    "logs": { "enabled": true, "invocation_logs": false },
-    "traces": { "enabled": true, "head_sampling_rate": 0.01 }
+    "logs": {
+      "enabled": true,
+      "invocation_logs": false
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.01
+    }
   },
   "vars": {
     "FYDE_API_URL": "https://br-little-glitter-beqgxchi-fydeapi.compute.c-9.us-east-2.aws.neon.tech"
+  },
+  "env": {
+    "production": {
+      "name": "fyde",
+      "workers_dev": true,
+      "preview_urls": false,
+      // fyde.izbirakin.com is attached in Cloudflare. Keep domain management
+      // separate so the deployment token needs access only to this Worker.
+      "assets": {
+        "directory": "../mobile/client/dist",
+        "binding": "ASSETS",
+        "not_found_handling": "single-page-application",
+        "run_worker_first": true
+      },
+      "secrets": {
+        "required": [
+          "FYDE_EDGE_KEY"
+        ]
+      },
+      "vars": {
+        "FYDE_API_URL": "https://br-dry-dust-bez1dfpd-fydeapi.compute.c-9.us-east-2.aws.neon.tech"
+      }
+    }
   }
 }

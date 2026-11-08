@@ -7,7 +7,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from .models import EmailBudget, Mail, Transfer
+from .models import EmailBudget, InboxItem, Mail, Transfer
 from .policy import PolicyError, audit, check_transfer, reverse_quota, settle_quota
 
 
@@ -21,6 +21,7 @@ class ProviderRejected(Exception):
 
 class LocalEmail:
     mode = "fixture"
+    supports_idempotent_retry = True
 
     def capabilities(self):
         return {"state": "sandbox", "recipient_verification": "local fixture only", "sends_email": False}
@@ -33,6 +34,7 @@ class LocalEmail:
 
 class ResendEmail:
     mode = "live"
+    supports_idempotent_retry = True
 
     def capabilities(self):
         ready = bool(
@@ -88,7 +90,11 @@ class ResendEmail:
         return response.json().get("last_event", "unknown")
 
 
-def adapter():
+def adapter(channel="email"):
+    if channel == "phone":
+        from .sms import adapter as phone_adapter
+
+        return phone_adapter()
     if settings.EMAIL_ADAPTER == "local":
         return LocalEmail()
     if settings.EMAIL_ADAPTER == "resend":
@@ -96,11 +102,11 @@ def adapter():
     raise PolicyError("email_disabled", "Email sending is disabled. Configure a delivery provider.")
 
 
-def readiness():
+def readiness(channel="email"):
     try:
-        return adapter().capabilities()
+        return adapter(channel).capabilities()
     except PolicyError:
-        return {"state": "disabled", "sends_email": False}
+        return {"state": "disabled", "sends_sms" if channel == "phone" else "sends_email": False}
 
 
 def reserve_email_budget(mail):
@@ -145,7 +151,7 @@ def process_mail(mail_id):
             return False
         transfer = None
         try:
-            provider = adapter()
+            provider = adapter(mail.channel)
             if mail.data_mode != provider.mode:
                 raise PolicyError(
                     "mode_changed", "The adapter mode changed; this operation requires reconciliation."
@@ -164,18 +170,29 @@ def process_mail(mail_id):
                     .get(pk=mail.transfer_id)
                 )
                 check_transfer(transfer)
-            if mail.attempts >= 3 or (
-                mail.first_attempt_at and mail.first_attempt_at < now - timedelta(hours=23)
+            if (
+                (mail.attempts and not provider.supports_idempotent_retry)
+                or mail.attempts >= 3
+                or (mail.first_attempt_at and mail.first_attempt_at < now - timedelta(hours=23))
             ):
                 mail.status = "reconciliation_required"
-                mail.failure_code = "idempotency_window_or_attempt_limit"
+                mail.failure_code = (
+                    "sms_reconciliation_required"
+                    if mail.channel == "phone"
+                    else "idempotency_window_or_attempt_limit"
+                )
                 mail.save(update_fields=["status", "failure_code"])
-                if transfer:
+                if transfer and not InboxItem.objects.filter(transfer=transfer).exists():
                     transfer.status = "uncertain"
                     transfer.save(update_fields=["status"])
                 return True
             if provider.mode == "live":
-                reserve_email_budget(mail)
+                if mail.channel == "phone":
+                    from .sms import reserve_budget
+
+                    reserve_budget(mail)
+                else:
+                    reserve_email_budget(mail)
             mail.attempts += 1
             mail.first_attempt_at = mail.first_attempt_at or now
             mail.lease_until = now + timedelta(minutes=2)
@@ -184,7 +201,7 @@ def process_mail(mail_id):
         except PolicyError as error:
             mail.status, mail.failure_code = "blocked", error.code
             mail.save(update_fields=["status", "failure_code"])
-            if transfer:
+            if transfer and not InboxItem.objects.filter(transfer=transfer).exists():
                 transfer.status, transfer.failure_code = "blocked", error.code
                 # Authorization failures are terminal; configuration blocks retain reservations for safe resumption.
                 if (
@@ -216,17 +233,28 @@ def process_mail(mail_id):
             transfer.status = (
                 "revoked"
                 if transfer.revoked_at
+                else "accessed"
+                if transfer.accessed_at
+                else "available_in_app"
+                if InboxItem.objects.filter(transfer=transfer).exists()
                 else {"accepted": "provider_accepted", "fixture_ready": "test_available"}.get(
                     outcome, outcome
                 )
             )
             transfer.provider_id, transfer.failure_code = provider_id, failure
             if outcome in ("accepted", "fixture_ready"):
-                transfer.accepted_at = timezone.now()
+                transfer.accepted_at = transfer.accepted_at or timezone.now()
                 settle_quota(transfer, True)
             elif outcome == "failed":
                 settle_quota(transfer, False)
             transfer.save()
+            if outcome in ("accepted", "fixture_ready") and not transfer.revoked_at:
+                from .inbox import deliver_to_inbox
+
+                try:
+                    deliver_to_inbox(transfer)
+                except PolicyError:
+                    pass
             audit(transfer.owner, f"transfer.{transfer.status}", transfer.pk, transfer.status)
     return True
 
@@ -243,12 +271,26 @@ def deliver_pending(limit=25):
 
 
 def reconcile_transfer(transfer):
-    if not transfer.provider_id or transfer.data_mode != "live" or settings.EMAIL_ADAPTER != "resend":
+    if not transfer.provider_id or transfer.data_mode != "live" or transfer.channel == "in_app":
         return "not_reconcilable"
-    event = ResendEmail().reconcile(transfer.provider_id)
-    if event in ("bounced", "failed", "suppressed"):
-        reverse_quota(transfer)
-        Transfer.objects.filter(pk=transfer.pk).update(status="failed", failure_code=f"provider_{event}")
-    elif event == "delivered":
-        Transfer.objects.filter(pk=transfer.pk, accessed_at=None, revoked_at=None).update(status="delivered")
+    provider = adapter(transfer.channel)
+    if provider.mode != "live" or provider.capabilities()["state"] != "ready":
+        return "not_reconcilable"
+    event = provider.reconcile(transfer.provider_id)
+    with transaction.atomic():
+        transfer = Transfer.objects.select_for_update().get(pk=transfer.pk)
+        has_inbox = InboxItem.objects.filter(transfer=transfer).exists()
+        if event in ("bounced", "failed", "suppressed", "undelivered", "canceled"):
+            reverse_quota(transfer)
+            Mail.objects.filter(transfer=transfer).update(status="failed", failure_code=f"provider_{event}")
+            if not transfer.accessed_at and not has_inbox:
+                Transfer.objects.filter(pk=transfer.pk, revoked_at=None).update(
+                    status="failed", failure_code=f"provider_{event}"
+                )
+        elif event == "delivered":
+            Mail.objects.filter(transfer=transfer).update(status="delivered")
+            if not has_inbox:
+                Transfer.objects.filter(pk=transfer.pk, accessed_at=None, revoked_at=None).update(
+                    status="delivered"
+                )
     return event

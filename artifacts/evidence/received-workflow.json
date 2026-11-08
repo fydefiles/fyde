@@ -1,0 +1,34 @@
+{
+  "data_mode": "fixture",
+  "channel": "in_app",
+  "transfer_id": "95b0d7a1-a6f2-44c0-8061-e8dc0a83069e",
+  "workflow": "verified sender command → verified recipient Received page → browser download",
+  "file_sha256": "90281af4750128e05e1e2667692b215ddaed30d6c15fdace66d7aa7d788ccdc3",
+  "browser_download_sha256": "90281af4750128e05e1e2667692b215ddaed30d6c15fdace66d7aa7d788ccdc3",
+  "external_messages_sent": false,
+  "provider_acceptance_claimed": false,
+  "desktop_viewport": [
+    1280,
+    900
+  ],
+  "mobile_viewport": [
+    390,
+    844
+  ],
+  "mobile_document_scroll_width": 390,
+  "mobile_document_client_width": 390,
+  "screenshots": [
+    "received-desktop.png",
+    "received-mobile.png"
+  ],
+  "verification": [
+    "41 PostgreSQL integration journeys passed; subsequent affected receiving and concurrency checks rerun",
+    "Legacy database upgrade retained one email/v1 transfer with a valid original binding",
+    "Company settings disabled SMS and cleared sentinel Twilio credentials"
+  ],
+  "limitations": [
+    "Only local fixture identities and files used",
+    "Twilio HTTP acceptance and failures are mocked",
+    "No live SMS/email or hosted deployment verified"
+  ]
+}

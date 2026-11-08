@@ -10,9 +10,13 @@ class Command(BaseCommand):
         parser.add_argument("transfer_id", nargs="?")
 
     def handle(self, *args, **options):
-        query = Transfer.objects.filter(data_mode="live", status="provider_accepted")
+        query = Transfer.objects.filter(data_mode="live", channel__in=["email", "phone"]).exclude(
+            provider_id=""
+        )
         if options["transfer_id"]:
             query = query.filter(pk=options["transfer_id"])
+        else:
+            query = query.filter(mail__status__in=["accepted", "uncertain", "reconciliation_required"])
         for transfer in query.order_by("accepted_at")[:10]:
             try:
                 observed = reconcile_transfer(transfer)

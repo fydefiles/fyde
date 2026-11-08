@@ -40,6 +40,7 @@ class ExchangeJourney(TestCase):
             username="owner@example.test",
             email="owner@example.test",
             first_name="Sample owner",
+            default_delivery_channel="email",
             password="Synthetic-password-728!",
             email_verified=True,
             data_mode="fixture",
@@ -209,6 +210,7 @@ class ExchangeJourney(TestCase):
         with self.assertRaisesRegex(PolicyError, "explicit permission"):
             self.transfer()
         grant = Grant.objects.create(
+            channel="email",
             owner=self.owner,
             contact=self.contact,
             version=self.version,
@@ -260,6 +262,7 @@ class ExchangeJourney(TestCase):
         second = self.file("References.txt", b"Synthetic references.")
         for version in (self.version, second):
             Grant.objects.create(
+                channel="email",
                 owner=self.owner,
                 contact=self.contact,
                 version=version,
@@ -284,6 +287,7 @@ class ExchangeJourney(TestCase):
 
     def test_new_versions_are_not_covered_by_existing_permission(self):
         grant = Grant.objects.create(
+            channel="email",
             owner=self.owner,
             contact=self.contact,
             version=self.version,

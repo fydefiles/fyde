@@ -6,7 +6,7 @@ from exchange.storage import inspect_version
 
 
 class Command(BaseCommand):
-    help = "Process customer file checks and transactional email. Run separately from company agents."
+    help = "Process customer file checks and transactional email/SMS. Run separately from company agents."
 
     def add_arguments(self, parser):
         parser.add_argument("--once", action="store_true")

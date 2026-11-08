@@ -20,6 +20,8 @@ The approved account is `mehmet@edseyir.com`. The isolated project is `fyde-sear
 
 After billing, required APIs, the private `fyde-images` Artifact Registry repository and `fyde-embedding-runtime` service account are configured, deploy the committed revision:
 
+The Cloud Build identity needs read access to the project's source-staging bucket, writer access to this Artifact Registry repository and `roles/logging.logWriter`. The build uses Cloud Logging rather than a separate log bucket. These build permissions belong to the build identity, not the inference runtime.
+
 ```sh
 GOOGLE_CLOUD_PROJECT=fyde-search-edseyir \
 GCLOUD_ACCOUNT=mehmet@edseyir.com \

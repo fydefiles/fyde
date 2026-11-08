@@ -48,7 +48,7 @@ xcodebuild -workspace ios/Fyde.xcworkspace -scheme Fyde \
   -derivedDataPath ios/build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
 ```
 
-This Debug build needs the Expo Metro server for its JavaScript. A simulator binary is not an installable signed iPhone release. Platform QA and distribution evidence are recorded separately in `product.md`.
+This Debug build needs the Expo Metro server for its JavaScript. The local build used Xcode 27, whose simulator interface is [Device Hub](https://developer.apple.com/documentation/xcode/managing-your-simulated-and-physical-devices-in-device-hub). A simulator binary is not an installable signed iPhone release. Platform QA and distribution evidence are recorded separately in `product.md`.
 
 ## Connect a recipient's agent
 

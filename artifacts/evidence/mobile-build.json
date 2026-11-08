@@ -1,0 +1,34 @@
+{
+  "mode": "manual local build; fixture customer accounts",
+  "source_revision": "d8edfdd6c97ac8e442f69a3b0f00270a79b19045",
+  "toolchain": "Xcode 27.0 (27A266a), Expo SDK 58",
+  "native_target": "iOS simulator Debug, arm64 and x86_64",
+  "build_command": "xcodebuild -workspace ios/Fyde.xcworkspace -scheme Fyde -configuration Debug -sdk iphonesimulator -destination generic/platform=iOS Simulator -derivedDataPath ios/build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build",
+  "native_build_result": "BUILD SUCCEEDED",
+  "artifact_sha256": "329380dd3477ec4baf80a5d14f20ced2f7bd3cd92b13a67b35af6a47bc924454",
+  "retained_artifact": "var/mobile-builds/Fyde-simulator-d8edfdd.zip",
+  "retained_build_log": "var/mobile-builds/ios-build-d8edfdd.log",
+  "javascript_bundles": [
+    "iOS Hermes",
+    "Android Hermes",
+    "web"
+  ],
+  "typecheck": "passed",
+  "expo_lint": "passed",
+  "expo_dependency_check": "passed",
+  "npm_audit_advisories": 0,
+  "ios_runtime_workflow": "not verified: Device Hub display connection timed out before the app could be installed/interacted with",
+  "android_native_package": "not built; Android SDK unavailable",
+  "physical_device_qa": "not performed",
+  "store_distribution": "not authorized or performed",
+  "paid_cloud_build": "not invoked",
+  "ios_simulator_runtime": "iOS 27.0 (24A434), installed from Apple",
+  "ios_simulator_device": "iPhone 18 Pro, booted",
+  "device_hub_error": {
+    "class": "DeviceKitError",
+    "code": "4002",
+    "message": "Live device view took longer than expected to connect.",
+    "attempts": "normal view, viewer restart and compact view"
+  },
+  "ios_viewer_evidence": "artifacts/evidence/ios-viewer-blocked.png"
+}

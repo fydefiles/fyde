@@ -47,8 +47,8 @@ ACTIONS = {
         "Approve content/help.json-only automatic development releases. Protect dev with integration and release-boundary checks and required review for protected code. Configure a separate release GitHub App token, immutable verifier image, deployment environment and hosted smoke identity. Keep main promotion operator-requested. Activate COMPANY_RELEASE_ENABLED only after these controls exist.",
     ),
     "F15": (
-        "Mobile runtime and distribution",
-        "The Expo client and unsigned iOS simulator build are available locally. Install a usable iOS simulator runtime or supply a test device; this host currently has none. Android native packaging needs an Android SDK/emulator or authorized build environment. For store distribution confirm owned bundle/package identifiers, Apple/Google developer accounts and signing, and set EXPO_PUBLIC_API_URL to the actual HTTPS customer backend. Do not put customer or provider secrets in public Expo configuration. No app-store release or device test is claimed.",
+        "Mobile device QA and distribution",
+        "The Expo client, unsigned iOS simulator build and Apple iOS 27 runtime are available locally. Native UI verification is blocked by Device Hub display connection timeouts. A working simulator viewer or test device is needed to finish that check. Android native packaging needs an Android SDK/emulator or authorized build environment. For store distribution confirm owned bundle/package identifiers, Apple/Google developer accounts and signing, and set EXPO_PUBLIC_API_URL to the actual HTTPS customer backend. Do not put customer or provider secrets in public Expo configuration. No app-store release or device test is claimed.",
     ),
     "F14": (
         "Optional SMS delivery activation",

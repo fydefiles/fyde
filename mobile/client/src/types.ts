@@ -27,13 +27,21 @@ export type FileCard = {
   from?: string;
   download_url?: string;
   api_download_url?: string;
+  // Search results from the API carry where the match was found.
+  // exact/reason are optional extras the client shows when supplied.
   match?: {
-    kind: "keyword" | "semantic";
-    excerpt: string;
-    page: number | null;
-    start: number;
-    end: number;
+    kind?: "keyword" | "semantic";
+    excerpt?: string;
+    page?: number | null;
+    start?: number;
+    end?: number;
+    exact?: boolean;
+    reason?: string;
   };
+  // Optional fields the redesigned client can show when the API supplies them.
+  modified_at?: string;
+  starred?: boolean;
+  snippet?: string;
 };
 export type Contact = {
   id: string;
@@ -77,13 +85,18 @@ export type Choice = {
   contact_id?: string;
   policy_id?: string;
   remaining?: boolean;
+  // Sent when the person approves a "confirm" turn's proposed file.
+  confirmed?: boolean;
 };
 export type Turn = {
   id: string;
   message: string;
   reply: string;
   result: {
+    // "confirm": Fyde matched a described file and waits for approval before
+    // sending. files[0] is the proposal, the rest are alternatives.
     kind: string;
+    channel?: Channel;
     section?: "files" | "people" | "permissions" | "classify";
     action_label?: string;
     files?: FileCard[];

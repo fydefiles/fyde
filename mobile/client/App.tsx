@@ -23,12 +23,26 @@ import {
   download,
   clearDownloads,
 } from "./src/api";
-import { Button, C, Choices, Field, Toggle, styles as ui } from "./src/ui";
+import {
+  Avatar,
+  Button,
+  C,
+  Choices,
+  Field,
+  Toggle,
+  Wordmark,
+  serif,
+  styles as ui,
+} from "./src/ui";
 import type { Workspace, Turn, FileCard, Channel, Choice } from "./src/types";
-import ChatScreen from "./src/ChatScreen";
+import ChatScreen, { type Draft } from "./src/ChatScreen";
 import SetupScreen from "./src/SetupScreen";
-import FilesScreen, { ClassificationScreen } from "./src/FilesScreen";
-import { ChatIcon, SearchIcon, ReceivedIcon } from "./src/NavigationIcons";
+import SearchScreen from "./src/SearchScreen";
+import ReceivedScreen from "./src/ReceivedScreen";
+import { ClassificationScreen } from "./src/FilesScreen";
+import { ChatIcon, SearchIcon, ReceivedIcon, ChevronIcon } from "./src/Icons";
+import { resetPrefs } from "./src/prefs";
+import { PREVIEW_TOKEN, resetPreview } from "./src/preview";
 
 type Tab = "Chat" | "Search" | "Setup" | "Received" | "Account" | "Manage";
 type Management = {
@@ -53,6 +67,71 @@ const paths = {
   Account: "/account",
   Manage: "/manage",
 } as const;
+
+function useKeyboardVisible() {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => setVisible(true),
+    );
+    const hide = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setVisible(false),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+  return visible;
+}
+
+function TabButton({
+  label,
+  active,
+  onPress,
+  icon,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+  icon: (color: string) => React.ReactNode;
+}) {
+  const color = active ? C.accent : C.muted;
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      style={s.tab}
+    >
+      <View style={[s.tabIcon, active && { backgroundColor: C.accentSoft }]}>
+        {icon(color)}
+      </View>
+      <Text style={[s.tabLabel, { color }, active && { fontWeight: "700" }]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function SettingsGroup({
+  title,
+  children,
+}: {
+  title?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={{ gap: 8 }}>
+      {!!title && <Text style={[ui.eyebrow, { paddingHorizontal: 4 }]}>{title}</Text>}
+      <View style={s.group}>{children}</View>
+    </View>
+  );
+}
+
 function useClientContent(): Frame {
   const router = useRouter();
   const pathname = usePathname();
@@ -70,6 +149,9 @@ function useClientContent(): Frame {
     [received, setReceived] = useState<FileCard[]>([]);
   const activeSession = useRef<string | null>(null);
   const [query, setQuery] = useState("");
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const clearDraft = useCallback(() => setDraft(null), []);
+  const keyboard = useKeyboardVisible();
   const [management, setManagement] = useState<Management>({
     section: "files",
   });
@@ -102,11 +184,14 @@ function useClientContent(): Frame {
       setTurns([]);
       setReceived([]);
       setQuery("");
+      setDraft(null);
       setCredentials([]);
       setAgentSecret("");
       setAgentPolicy("");
       setAgentName("My case assistant");
       setManagement({ section: "files" });
+      resetPrefs();
+      resetPreview();
     }
   }
   const refresh = useCallback(
@@ -177,6 +262,12 @@ function useClientContent(): Frame {
     setManagement(action);
     navigate("Manage");
   }
+  function startPreview() {
+    setError("");
+    activeSession.current = PREVIEW_TOKEN;
+    setToken(PREVIEW_TOKEN);
+    setTab("Chat");
+  }
   async function login() {
     if (busy) return;
     setBusy(true);
@@ -244,7 +335,8 @@ function useClientContent(): Frame {
           contentContainerStyle={[
             ui.body,
             {
-              paddingTop: 44,
+              paddingTop: 36,
+              paddingHorizontal: 24,
               maxWidth: 500,
               width: "100%",
               alignSelf: "center",
@@ -252,20 +344,19 @@ function useClientContent(): Frame {
           ]}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={s.brand}>
-            fyde<Text style={{ color: C.accent }}>.</Text>
-          </Text>
-          <Text style={ui.eyebrow}>FILES, A CONVERSATION AWAY</Text>
-          <Text style={ui.heading}>
-            {signup
-              ? "Make room for\nyour important files."
-              : "Your files are\nright here."}
-          </Text>
-          <Text style={ui.sub}>
-            {signup
-              ? "Start privately. Set up your files and relationships after creating your account."
-              : "Sign in to chat with your files and receive documents."}
-          </Text>
+          <Wordmark size={34} />
+          <View style={{ gap: 10, marginTop: 28, marginBottom: 8 }}>
+            <Text style={s.authTitle}>
+              {signup
+                ? "Make room for\nyour important files."
+                : "Your files,\none sentence away."}
+            </Text>
+            <Text style={ui.sub}>
+              {signup
+                ? "Start privately. Add your files and the people you share with after creating your account."
+                : "Describe any file and Fyde finds the exact one — then asks before sending it."}
+            </Text>
+          </View>
           {!!error && (
             <Text style={ui.error} accessibilityRole="alert">
               {error}
@@ -290,9 +381,7 @@ function useClientContent(): Frame {
             autoComplete={signup ? "new-password" : "current-password"}
           />
           <Button
-            title={
-              busy ? "Connecting…" : signup ? "Create account →" : "Sign in →"
-            }
+            title={busy ? "Connecting…" : signup ? "Create account" : "Sign in"}
             disabled={busy || !email || !password || (signup && !name)}
             onPress={login}
           />
@@ -308,7 +397,22 @@ function useClientContent(): Frame {
               setError("");
             }}
           />
-          <Text style={ui.fine}>
+          {__DEV__ && (
+            <Pressable
+              accessibilityRole="button"
+              onPress={startPreview}
+              style={s.previewEntry}
+            >
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={s.previewTitle}>Preview with sample files</Text>
+                <Text style={ui.fine}>
+                  Development builds only · works offline, nothing is sent
+                </Text>
+              </View>
+              <ChevronIcon size={12} color={C.muted} />
+            </Pressable>
+          )}
+          <Text style={[ui.fine, { textAlign: "center" }]}>
             Server: {API_ROOT}
             {"\n"}Native sessions use device secure storage. Web preview
             sessions stay in memory.
@@ -331,6 +435,7 @@ function useClientContent(): Frame {
         </View>
       ),
     };
+  const preview = state.user.data_mode === "preview";
   return {
     header: (
       <>
@@ -341,45 +446,36 @@ function useClientContent(): Frame {
             onPress={() =>
               navigate(state.user.onboarding_complete ? "Chat" : "Setup")
             }
+            style={{ flex: 1 }}
           >
-            <Text style={s.brand}>
-              fyde<Text style={{ color: C.accent }}>.</Text>
-            </Text>
+            <Wordmark size={26} />
           </Pressable>
-          <Text style={s.section}>
-            {tab === "Chat"
-              ? "Your private file assistant"
-              : tab === "Search"
-                ? "Find your files"
-                : tab === "Manage"
-                  ? "Workspace changes"
-                  : tab === "Setup"
-                    ? "Welcome to Fyde"
-                    : tab}
-          </Text>
+          {(preview || state.user.data_mode === "fixture") && (
+            <View style={s.modePill}>
+              <View style={s.modeDot} />
+              <Text style={s.modeText}>
+                {preview ? "Sample preview" : "Local fixture"}
+              </Text>
+            </View>
+          )}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Profile and settings"
             onPress={() => navigate("Account")}
-            style={s.avatar}
           >
-            <Text style={s.initial}>
-              {(state.user.name || state.user.email).slice(0, 1).toUpperCase()}
-            </Text>
+            <Avatar
+              name={state.user.name || state.user.email}
+              size={34}
+              tone={tab === "Account" ? C.accentSoft : C.sunken}
+            />
           </Pressable>
         </View>
-        {state.user.data_mode === "fixture" && (
-          <View style={s.banner}>
-            <Text style={s.bannerText}>
-              Local fixture account · no live delivery claimed
-            </Text>
-          </View>
-        )}
         {!state.user.email_verified && (
           <Pressable onPress={() => navigate("Account")} style={s.verify}>
-            <Text style={ui.fine}>
-              Verify your email before sharing. Open Account →
+            <Text style={s.verifyText}>
+              Verify your email before sharing
             </Text>
+            <ChevronIcon size={10} color="#7A5A1E" />
           </Pressable>
         )}
       </>
@@ -393,6 +489,8 @@ function useClientContent(): Frame {
           send={send}
           openManagement={openManagement}
           download={getFile}
+          draft={draft}
+          clearDraft={clearDraft}
         />
       ) : tab === "Setup" ? (
         <SetupScreen
@@ -427,83 +525,69 @@ function useClientContent(): Frame {
           />
         )
       ) : tab === "Search" ? (
-        <FilesScreen
+        <SearchScreen
           state={state}
           token={token}
           query={query}
           onQuery={setQuery}
           download={getFile}
+          sendInChat={(file) => {
+            setDraft({ text: `Send “${file.title}” to `, file });
+            navigate("Chat");
+          }}
+          editDetails={() => openManagement({ section: "classify" })}
         />
       ) : tab === "Received" ? (
-        <ScrollView contentContainerStyle={ui.body}>
-          <Text style={ui.eyebrow}>SHARED WITH YOU</Text>
-          <Text style={ui.heading}>Your received{`\n`}files.</Text>
-          {!!error && <Text style={ui.error}>{error}</Text>}
-          {received.map((file) => (
-            <View key={file.item_id} style={ui.card}>
-              <Text style={ui.cardTitle}>{file.title}</Text>
-              <Text style={ui.fine}>
-                {file.name} · v{file.number} · From {file.from}
-              </Text>
-              <Button
-                title={
-                  file.available ? "Download / open ↓" : "Access unavailable"
-                }
-                secondary
-                disabled={!file.available}
-                onPress={() => getFile(file).catch((e) => setError(e.message))}
-              />
-            </View>
-          ))}
-          {!received.length && (
-            <Text style={ui.sub}>
-              No received files yet. A verified sender can use your Fyde email
-              or a linked phone. Ask in chat for documents under a case
-              permission.
-            </Text>
-          )}
-          <Text style={ui.fine}>
-            Owner permissions, expiry and revocation still apply. Downloads use
-            the sender’s bandwidth and do not add file sends. Downloaded copies
-            cannot be recalled.
-          </Text>
-        </ScrollView>
+        <ReceivedScreen files={received} error={error} download={getFile} />
       ) : (
-        <ScrollView contentContainerStyle={ui.body}>
-          <Text style={ui.heading}>Your account.</Text>
-          <Button
-            title="Refresh account"
-            secondary
-            onPress={() => refresh().catch((e) => setError(e.message))}
-          />
-          <Button
-            title={
-              state.user.onboarding_complete
-                ? "Back to chat"
-                : "Back to onboarding"
-            }
-            secondary
-            onPress={() =>
-              navigate(state.user.onboarding_complete ? "Chat" : "Setup")
-            }
-          />
-          <Text style={ui.sub}>
-            {state.user.name}
-            {"\n"}
-            {state.user.email}
-            {"\n"}Email{" "}
-            {state.user.email_verified ? "verified" : "not verified"}
-          </Text>
+        <ScrollView contentContainerStyle={[ui.body, { gap: 22 }]}>
+          <View style={s.profile}>
+            <Avatar
+              name={state.user.name || state.user.email}
+              size={64}
+              tone={C.accentSoft}
+            />
+            <View style={{ flex: 1, gap: 3 }}>
+              <Text style={s.profileName}>{state.user.name || "Your account"}</Text>
+              <Text style={ui.fine}>{state.user.email}</Text>
+              <Text
+                style={[
+                  ui.fine,
+                  { color: state.user.email_verified ? C.success : C.danger },
+                ]}
+              >
+                {state.user.email_verified ? "Email verified" : "Email not verified"}
+              </Text>
+            </View>
+          </View>
           {!!error && (
             <Text style={ui.error} accessibilityRole="alert">
               {error}
             </Text>
           )}
+          <View style={s.stats}>
+            <View style={s.stat}>
+              <Text style={s.statValue}>{state.files.length}</Text>
+              <Text style={ui.fine}>Files</Text>
+            </View>
+            <View style={s.stat}>
+              <Text style={s.statValue}>{state.contacts.length}</Text>
+              <Text style={ui.fine}>People</Text>
+            </View>
+            <View style={s.stat}>
+              <Text style={s.statValue}>
+                {state.consumed}
+                <Text style={s.statLimit}>
+                  {state.plan.sends === null ? "" : ` / ${state.plan.sends}`}
+                </Text>
+              </Text>
+              <Text style={ui.fine}>Sends used</Text>
+            </View>
+          </View>
           {!state.user.email_verified && (
-            <>
+            <View style={{ gap: 10 }}>
               <Button
                 title="Send verification email"
-                secondary
                 onPress={() =>
                   mutate("/api/v1/verify-email/", {})
                     .then(() =>
@@ -524,176 +608,181 @@ function useClientContent(): Frame {
                 secondary
                 onPress={() => Linking.openURL(API_ROOT + "/outbox/")}
               />
-            </>
+            </View>
           )}
-          <View style={ui.card}>
-            <Text style={ui.cardTitle}>Sharing and chat</Text>
-            <Choices
-              label="Default delivery"
-              value={state.user.default_channel}
-              items={[
-                { id: "in_app", name: "Fyde" },
-                { id: "email", name: "Email" },
-                { id: "phone", name: "Phone (SMS)" },
-              ]}
-              onChange={(default_channel) =>
-                mutate("/api/v1/preferences/", { default_channel }).catch((e) =>
-                  setError(e.message),
-                )
-              }
-            />
-            <Toggle
-              label="Use recent chat choices for follow-ups"
-              value={state.user.chat_context_enabled ?? true}
-              onChange={(chat_context_enabled) =>
-                mutate("/api/v1/preferences/", { chat_context_enabled }).catch(
-                  (e) => setError(e.message),
-                )
-              }
-            />
-            <Toggle
-              label="Pause my outgoing sharing"
-              value={state.user.sharing_paused}
-              onChange={(sharing_paused) =>
-                mutate("/api/v1/preferences/", { sharing_paused }).catch((e) =>
-                  setError(e.message),
-                )
-              }
-            />
-            <Text style={ui.fine}>
-              Pausing stops requests and future downloads of your files.
-              Received files remain subject to their original owner's controls.
-            </Text>
-          </View>
-          <View style={ui.card}>
-            <Text style={ui.cardTitle}>Connect your recipient agent</Text>
-            <Text style={ui.fine}>
-              Create a credential for one case permission granted to you. It can
-              request documents and download files released under that
-              permission. It cannot read your uploaded files or change access
-              rules.
-            </Text>
-            <Choices
-              label="Received case permission"
-              items={state.received_permissions.map((p) => ({
-                id: p.id,
-                name: `${p.case} · from ${p.owner}`,
-              }))}
-              value={agentPolicy}
-              onChange={setAgentPolicy}
-            />
-            <Field
-              label="Agent name"
-              value={agentName}
-              onChangeText={setAgentName}
-            />
-            <Button
-              title="Create scoped credential"
-              disabled={!agentPolicy}
-              onPress={() =>
-                mutate<{ token: string }>("/api/v1/credentials/", {
-                  policy_id: agentPolicy,
-                  name: agentName,
-                })
-                  .then((result) => {
-                    if (activeSession.current === token)
-                      setAgentSecret(result.token);
-                  })
-                  .catch((e) => setError(e.message))
-              }
-            />
-            {!!agentSecret && (
-              <>
-                <Text style={ui.fine}>
-                  Shown once. Copy to your agent’s secret store. The protocol is
-                  /api/agents/v1/.
-                </Text>
-                <Text
-                  selectable
-                  style={{
-                    fontFamily: "monospace",
-                    fontSize: 12,
-                    color: C.ink,
-                  }}
-                >
-                  {agentSecret}
-                </Text>
-              </>
-            )}
-          </View>
-          {credentials.map((key) => (
-            <View key={key.id} style={ui.card}>
-              <Text style={ui.cardTitle}>{key.name}</Text>
-              <Text style={ui.fine}>
-                Expires {new Date(key.expires_at).toLocaleString()}
-              </Text>
-              <Button
-                title="Revoke agent credential"
-                secondary
-                onPress={() =>
-                  mutate(`/api/v1/credentials/${key.id}/revoke/`, {}).catch(
+          <SettingsGroup title="Your library">
+            {(
+              [
+                ["Files", "files"],
+                ["People", "people"],
+                ["Automatic sharing", "permissions"],
+              ] as const
+            ).map(([label, section], index) => (
+              <Pressable
+                key={section}
+                accessibilityRole="button"
+                onPress={() => openManagement({ section })}
+                style={[s.groupRow, index > 0 && s.groupDivider]}
+              >
+                <Text style={s.groupText}>{label}</Text>
+                <ChevronIcon size={12} color={C.faint} />
+              </Pressable>
+            ))}
+          </SettingsGroup>
+          <SettingsGroup title="Sharing and chat">
+            <View style={{ padding: 16, paddingBottom: 6 }}>
+              <Choices
+                label="Default delivery"
+                value={state.user.default_channel}
+                items={[
+                  { id: "in_app", name: "Fyde" },
+                  { id: "email", name: "Email" },
+                  { id: "phone", name: "Phone (SMS)" },
+                ]}
+                onChange={(default_channel) =>
+                  mutate("/api/v1/preferences/", { default_channel }).catch((e) =>
+                    setError(e.message),
+                  )
+                }
+              />
+            </View>
+            <View style={[s.groupDivider, { paddingHorizontal: 16 }]}>
+              <Toggle
+                label="Use recent chat choices for follow-ups"
+                value={state.user.chat_context_enabled ?? true}
+                onChange={(chat_context_enabled) =>
+                  mutate("/api/v1/preferences/", { chat_context_enabled }).catch(
                     (e) => setError(e.message),
                   )
                 }
               />
             </View>
-          ))}
-          <Button title="Sign out" secondary onPress={endSession} />
-          <Text style={ui.fine}>
+            <View style={[s.groupDivider, { paddingHorizontal: 16, paddingBottom: 12 }]}>
+              <Toggle
+                label="Pause my outgoing sharing"
+                value={state.user.sharing_paused}
+                onChange={(sharing_paused) =>
+                  mutate("/api/v1/preferences/", { sharing_paused }).catch((e) =>
+                    setError(e.message),
+                  )
+                }
+              />
+              <Text style={ui.fine}>
+                Pausing stops requests and future downloads of your files.
+                Received files remain subject to their original owner’s controls.
+              </Text>
+            </View>
+          </SettingsGroup>
+          <SettingsGroup title="Recipient agent">
+            <View style={{ padding: 16, gap: 12 }}>
+              <Text style={ui.fine}>
+                Create a credential for one case permission granted to you. It can
+                request documents and download files released under that
+                permission. It cannot read your uploaded files or change access
+                rules.
+              </Text>
+              {state.received_permissions.length ? (
+                <Choices
+                  label="Received case permission"
+                  items={state.received_permissions.map((p) => ({
+                    id: p.id,
+                    name: `${p.case} · from ${p.owner}`,
+                  }))}
+                  value={agentPolicy}
+                  onChange={setAgentPolicy}
+                />
+              ) : (
+                <Text style={ui.fine}>No one has shared a case with you yet.</Text>
+              )}
+              <Field
+                label="Agent name"
+                value={agentName}
+                onChangeText={setAgentName}
+                style={{ backgroundColor: C.bg }}
+              />
+              <Button
+                title="Create scoped credential"
+                disabled={!agentPolicy}
+                onPress={() =>
+                  mutate<{ token: string }>("/api/v1/credentials/", {
+                    policy_id: agentPolicy,
+                    name: agentName,
+                  })
+                    .then((result) => {
+                      if (activeSession.current === token)
+                        setAgentSecret(result.token);
+                    })
+                    .catch((e) => setError(e.message))
+                }
+              />
+              {!!agentSecret && (
+                <>
+                  <Text style={ui.fine}>
+                    Shown once. Copy to your agent’s secret store. The protocol is
+                    /api/agents/v1/.
+                  </Text>
+                  <Text
+                    selectable
+                    style={{
+                      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+                      fontSize: 12,
+                      color: C.ink,
+                    }}
+                  >
+                    {agentSecret}
+                  </Text>
+                </>
+              )}
+            </View>
+            {credentials.map((key) => (
+              <View key={key.id} style={[s.groupRow, s.groupDivider]}>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={s.groupText}>{key.name}</Text>
+                  <Text style={ui.fine}>
+                    Expires {new Date(key.expires_at).toLocaleString()}
+                  </Text>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() =>
+                    mutate(`/api/v1/credentials/${key.id}/revoke/`, {}).catch(
+                      (e) => setError(e.message),
+                    )
+                  }
+                >
+                  <Text style={{ color: C.danger, fontWeight: "600" }}>Revoke</Text>
+                </Pressable>
+              </View>
+            ))}
+          </SettingsGroup>
+          <Button title={preview ? "Leave preview" : "Sign out"} secondary onPress={endSession} />
+          <Text style={[ui.fine, { textAlign: "center" }]}>
             The customer assistant is separate from the company’s development
             and marketing agents. They cannot read this chat or your documents.
           </Text>
         </ScrollView>
       ),
     footer:
-      state.user.onboarding_complete && tab !== "Manage" ? (
-        <View style={s.tabs}>
-          <Pressable
-            accessibilityRole="tab"
-            accessibilityLabel="Search"
-            accessibilityState={{ selected: tab === "Search" }}
+      state.user.onboarding_complete && tab !== "Manage" && !keyboard ? (
+        <View style={s.tabs} accessibilityRole="tablist">
+          <TabButton
+            label="Search"
+            active={tab === "Search"}
             onPress={() => navigate("Search")}
-            style={s.searchTab}
-          >
-            <View
-              style={[
-                s.chatIcon,
-                { backgroundColor: tab === "Search" ? C.warm : "transparent" },
-              ]}
-            >
-              <SearchIcon color={tab === "Search" ? C.accent : C.muted} />
-            </View>
-          </Pressable>
-          <Pressable
-            accessibilityRole="tab"
-            accessibilityLabel="Chat"
-            accessibilityState={{ selected: tab === "Chat" }}
+            icon={(color) => <SearchIcon size={21} color={color} />}
+          />
+          <TabButton
+            label="Chat"
+            active={tab === "Chat"}
             onPress={() => navigate("Chat")}
-            style={s.chatTab}
-          >
-            <View
-              style={[
-                s.chatIcon,
-                tab === "Chat" && { backgroundColor: C.accent },
-              ]}
-            >
-              <ChatIcon color={tab === "Chat" ? C.paper : C.ink} />
-            </View>
-          </Pressable>
-          <Pressable
-            accessibilityRole="tab"
-            accessibilityLabel="Received"
-            accessibilityState={{ selected: tab === "Received" }}
+            icon={(color) => <ChatIcon size={22} color={color} />}
+          />
+          <TabButton
+            label="Received"
+            active={tab === "Received"}
             onPress={() => navigate("Received")}
-            style={s.receivedTab}
-          >
-            <ReceivedIcon color={tab === "Received" ? C.accent : C.muted} />
-            <Text
-              style={[s.tabLabel, tab === "Received" && { color: C.accent }]}
-            >
-              Received
-            </Text>
-          </Pressable>
+            icon={(color) => <ReceivedIcon size={21} color={color} />}
+          />
         </View>
       ) : null,
   };
@@ -725,70 +814,52 @@ const s = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    gap: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: C.line,
+    paddingHorizontal: 18,
+    paddingTop: 6,
+    paddingBottom: 10,
+    gap: 10,
   },
-  brand: { fontSize: 30, fontWeight: "700", color: C.ink, letterSpacing: -1.4 },
-  section: { flex: 1, color: C.muted, fontSize: 11 },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: C.soft,
-    borderWidth: 1,
-    borderColor: C.line,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  initial: { fontSize: 16, fontWeight: "600", color: C.ink },
-  banner: { backgroundColor: C.warm, padding: 9, alignItems: "center" },
-  bannerText: { fontSize: 10, color: "#6d4b39" },
-  verify: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: "#f4efd9",
-  },
-  tabs: {
+  modePill: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    gap: 10,
-    borderTopWidth: 1,
+    gap: 6,
+    backgroundColor: C.sunken,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  modeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.accent },
+  modeText: { fontSize: 11.5, fontWeight: "600", color: C.muted },
+  verify: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingVertical: 9,
+    borderRadius: 12,
+    backgroundColor: "#F7EED8",
+  },
+  verifyText: { fontSize: 13, fontWeight: "600", color: "#7A5A1E" },
+  tabs: {
+    flexDirection: "row",
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 2,
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: C.line,
     backgroundColor: C.bg,
   },
-  searchTab: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 52,
-  },
-  chatTab: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 52,
-  },
-  chatIcon: {
-    width: 50,
-    height: 46,
+  tab: { flex: 1, alignItems: "center", gap: 4, minHeight: 52 },
+  tabIcon: {
+    width: 58,
+    height: 32,
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: C.soft,
   },
-  receivedTab: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 52,
-    gap: 4,
-  },
-  tabLabel: { color: C.muted, fontSize: 11 },
+  tabLabel: { fontSize: 11.5, fontWeight: "600" },
   loading: {
     flex: 1,
     justifyContent: "center",
@@ -796,4 +867,48 @@ const s = StyleSheet.create({
     gap: 20,
     padding: 30,
   },
+  authTitle: {
+    fontFamily: serif,
+    fontSize: 38,
+    lineHeight: 44,
+    color: C.ink,
+    letterSpacing: -0.8,
+  },
+  previewEntry: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: C.line,
+    borderStyle: "dashed",
+  },
+  previewTitle: { fontSize: 15, fontWeight: "600", color: C.ink },
+  profile: { flexDirection: "row", alignItems: "center", gap: 16 },
+  profileName: { fontFamily: serif, fontSize: 26, color: C.ink },
+  stats: { flexDirection: "row", gap: 10 },
+  stat: {
+    flex: 1,
+    backgroundColor: C.sunken,
+    borderRadius: 18,
+    padding: 14,
+    gap: 2,
+  },
+  statValue: { fontSize: 24, fontWeight: "600", color: C.ink, letterSpacing: -0.5 },
+  statLimit: { fontSize: 15, fontWeight: "400", color: C.muted },
+  group: { backgroundColor: C.sunken, borderRadius: 20, overflow: "hidden" },
+  groupRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    minHeight: 54,
+    paddingVertical: 10,
+  },
+  groupDivider: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: C.sunkenStrong,
+  },
+  groupText: { flex: 1, fontSize: 16, color: C.ink },
 });

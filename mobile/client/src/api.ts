@@ -4,6 +4,7 @@ import * as SecureStore from "expo-secure-store";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import type { FileCard } from "./types";
+import { PREVIEW_TOKEN, previewCall } from "./preview";
 
 export const API_ROOT = (
   process.env.EXPO_PUBLIC_API_URL ||
@@ -47,7 +48,7 @@ export async function restoreSession() {
   }
 }
 export async function persistSession(token: string | null) {
-  if (Platform.OS === "web") return;
+  if (Platform.OS === "web" || token === PREVIEW_TOKEN) return;
   if (token)
     await SecureStore.setItemAsync(
       key,
@@ -62,6 +63,7 @@ export async function call<T>(
   method = "GET",
   data?: unknown,
 ): Promise<T> {
+  if (token === PREVIEW_TOKEN) return previewCall<T>(path, method, data);
   originCheck();
   if (!path.startsWith("/api/") || path.includes("://"))
     throw new Error("Invalid customer API path.");
@@ -102,6 +104,10 @@ export async function call<T>(
   return result as T;
 }
 export async function download(file: FileCard, token: string) {
+  if (token === PREVIEW_TOKEN)
+    throw new Error(
+      "This is a sample file, so there is nothing to download. Sign in to open your real files.",
+    );
   originCheck();
   const path = file.api_download_url || file.download_url;
   if (

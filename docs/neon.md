@@ -33,6 +33,8 @@ Set these variables in a private environment file or the host's secrets manager.
 
 The development configuration lives outside the feature checkout at `var/neon-runtime/customer.env` in the primary repository. It is ignored by Git, with mode `0600` inside a `0700` directory. `admin.env` holds migration-owner connections separately. `company.env` contains the company connection and its runtime settings, without customer or storage credentials. Runtime database roles have application-table permissions rather than migration-owner permissions; the customer role has no access to the managed `neon_auth` schema.
 
+Neon mode uses `fyde_neon_session` and `fyde_neon_csrf` cookies so the preview can run beside the original local fixture app on the same hostname without replacing its cookies. Hosts can override `SESSION_COOKIE_NAME` and `CSRF_COOKIE_NAME` when running more instances.
+
 Select the environment explicitly so ordinary local tests continue using local fixtures:
 
 ```sh

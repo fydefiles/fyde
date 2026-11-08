@@ -12,3 +12,7 @@ artifacts/evidence/*.png
 artifacts/evidence/*.jpg
 artifacts/private
 node_modules
+**/.dev.vars*
+.projects
+backend/dist
+cloudflare/dist

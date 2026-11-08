@@ -9,6 +9,7 @@ import {
 import type { Workspace, FileCard } from "./types";
 import { Button, Choices, Toggle, styles as s, C, Field } from "./ui";
 import { call } from "./api";
+import { useRouter } from "expo-router";
 type Props = {
   state: Workspace;
   save: (
@@ -156,6 +157,7 @@ export default function FilesScreen({
   onQuery: (query: string) => void;
   download: (file: FileCard) => Promise<void>;
 }) {
+  const router = useRouter();
   const term = query.trim();
   const [result, setResult] = useState<{
     query: string;
@@ -239,6 +241,11 @@ export default function FilesScreen({
               {file.name} · v{file.number} · {file.state} ·{" "}
               {file.matter || "Private · no case"}
             </Text>
+            <Button
+              title="Versions and file details →"
+              secondary
+              onPress={() => router.push({ pathname: "/document", params: { id: file.document_id } })}
+            />
             <Button
               title="Download original ↓"
               secondary

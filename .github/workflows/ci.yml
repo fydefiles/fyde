@@ -90,3 +90,48 @@ jobs:
         run: npm run bundle
         env:
           EXPO_PUBLIC_API_URL: https://example.invalid
+      - name: Retain the website for the Cloudflare integration check
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: fyde-web-${{ github.sha }}
+          path: mobile/client/dist
+          retention-days: 1
+  typescript:
+    needs: mobile
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: fyde
+          POSTGRES_PASSWORD: fixture-only
+          POSTGRES_DB: fyde_ts_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      MIGRATION_DATABASE_URL: postgresql://fyde:fixture-only@127.0.0.1:5432/fyde_ts_test
+      FYDE_INTEGRATION_DATABASE_URL: postgresql://fyde:fixture-only@127.0.0.1:5432/fyde_ts_test
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            cloudflare/package-lock.json
+      - run: npm ci --prefix backend
+      - run: npm --prefix backend run migrate
+      - run: npm --prefix backend run typecheck
+      - run: npm --prefix backend run test:integration
+      - run: npm --prefix backend run build
+      - run: npm audit --prefix backend --omit=dev --audit-level=high
+      - run: npm ci --prefix cloudflare
+      - run: npm --prefix cloudflare run typecheck
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: fyde-web-${{ github.sha }}
+          path: mobile/client/dist
+      - run: npm --prefix cloudflare run check

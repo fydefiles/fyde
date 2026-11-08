@@ -2,7 +2,9 @@
 
 Fyde is a chat-first file-sharing app for web, iOS and Android. It finds and shares files with known contacts. A trusted backend binds each send to a verified recipient, an exact immutable version, a permission, an operation ID, and an expiry. Company workflows use a separate database and sanitized inputs.
 
-The repository was empty on November 7, 2026. This implementation uses Django 5.2 LTS, PostgreSQL for production and SQLite for local development, private filesystem storage, and durable database jobs. The application is usable locally. Live email/SMS, billing, Naïve, Reddit, Instagram, and hosted deployment require the accounts and controls listed in [product.md](product.md).
+The customer app uses a TypeScript API on Neon Functions, with the Expo web frontend hosted by Cloudflare Workers Static Assets. Neon also provides Postgres, private object storage and Managed Better Auth. See [Cloudflare and Neon hosting](docs/cloudflare-neon.md) for configuration, checks and development delivery.
+
+The Django application remains available as a local fixture app and for the separate company tools. Live email/SMS file notifications, billing, Naïve, Reddit and Instagram still need the accounts and controls listed in [product.md](product.md).
 
 ## Run locally
 
@@ -64,4 +66,6 @@ The database-backed journeys protect disclosure, verification, permissions, mete
 
 ## Deployment
 
-Build with `docker build --build-arg RELEASE_SHA=$(git rev-parse HEAD) -t fyde:local .`. The image runs as an unprivileged user. A protected development deployment workflow is supplied but **disabled until hosting is configured**. No production service or background cloud worker currently exists. Use [the deployment runbook](docs/operations.md) and [the living implementation register](product.md) before activation.
+The customer hosting path is [Cloudflare plus Neon Functions](docs/cloudflare-neon.md). Its development deployment workflow follows a successful verified `dev` push and checks the hosted Git SHA. Production promotion requires a separate release request.
+
+The legacy Docker image runs the Django fixture/company app as an unprivileged user. Its container host and SSH scripts are retained for that separate runtime; the customer deployment does not use them. See [operations](docs/operations.md) and [the implementation register](product.md) for the remaining provider dependencies.

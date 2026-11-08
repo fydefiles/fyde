@@ -1,0 +1,1351 @@
+{
+  "User": {
+    "table": "exchange_user",
+    "fields": {
+      "password": {
+        "default": "",
+        "json": false
+      },
+      "last_login": {
+        "default": null,
+        "json": false
+      },
+      "is_superuser": {
+        "default": false,
+        "json": false
+      },
+      "username": {
+        "default": "",
+        "json": false
+      },
+      "first_name": {
+        "default": "",
+        "json": false
+      },
+      "last_name": {
+        "default": "",
+        "json": false
+      },
+      "is_staff": {
+        "default": false,
+        "json": false
+      },
+      "is_active": {
+        "default": true,
+        "json": false
+      },
+      "date_joined": {
+        "default": "$now",
+        "json": false
+      },
+      "neon_subject": {
+        "default": null,
+        "json": false
+      },
+      "email": {
+        "default": "",
+        "json": false
+      },
+      "email_verified": {
+        "default": false,
+        "json": false
+      },
+      "sharing_paused": {
+        "default": false,
+        "json": false
+      },
+      "data_mode": {
+        "default": "live",
+        "json": false
+      },
+      "notifications_enabled": {
+        "default": true,
+        "json": false
+      },
+      "onboarding_completed_at": {
+        "default": null,
+        "json": false
+      },
+      "chat_context_enabled": {
+        "default": true,
+        "json": false
+      },
+      "default_delivery_channel": {
+        "default": "in_app",
+        "json": false
+      },
+      "phone": {
+        "default": "",
+        "json": false
+      },
+      "phone_verified_at": {
+        "default": null,
+        "json": false
+      }
+    }
+  },
+  "Contact": {
+    "table": "exchange_contact",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "owner_id": {
+        "default": null,
+        "json": false
+      },
+      "name": {
+        "default": "",
+        "json": false
+      },
+      "email": {
+        "default": "",
+        "json": false
+      },
+      "phone": {
+        "default": "",
+        "json": false
+      },
+      "phone_verified_at": {
+        "default": null,
+        "json": false
+      },
+      "relationship": {
+        "default": "",
+        "json": false
+      },
+      "aliases": {
+        "default": "",
+        "json": false
+      },
+      "endpoint_revision": {
+        "default": 1,
+        "json": false
+      },
+      "verified_at": {
+        "default": null,
+        "json": false
+      },
+      "paused": {
+        "default": false,
+        "json": false
+      }
+    }
+  },
+  "Document": {
+    "table": "exchange_document",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "owner_id": {
+        "default": null,
+        "json": false
+      },
+      "title": {
+        "default": "",
+        "json": false
+      },
+      "tags": {
+        "default": "",
+        "json": false
+      },
+      "sensitive": {
+        "default": false,
+        "json": false
+      },
+      "matter_id": {
+        "default": null,
+        "json": false
+      },
+      "document_type": {
+        "default": "general",
+        "json": false
+      },
+      "current_version_id": {
+        "default": null,
+        "json": false
+      },
+      "deleted_at": {
+        "default": null,
+        "json": false
+      }
+    }
+  },
+  "FileVersion": {
+    "table": "exchange_fileversion",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "document_id": {
+        "default": null,
+        "json": false
+      },
+      "number": {
+        "default": null,
+        "json": false
+      },
+      "original_name": {
+        "default": "",
+        "json": false
+      },
+      "blob_key": {
+        "default": "",
+        "json": false
+      },
+      "sha256": {
+        "default": "",
+        "json": false
+      },
+      "size": {
+        "default": null,
+        "json": false
+      },
+      "mime": {
+        "default": "",
+        "json": false
+      },
+      "state": {
+        "default": "quarantined",
+        "json": false
+      },
+      "extraction_state": {
+        "default": "pending",
+        "json": false
+      },
+      "extracted_text": {
+        "default": "",
+        "json": false
+      },
+      "check_detail": {
+        "default": "",
+        "json": false
+      },
+      "source": {
+        "default": "upload",
+        "json": false
+      },
+      "blob_deleted_at": {
+        "default": null,
+        "json": false
+      }
+    }
+  },
+  "Grant": {
+    "table": "exchange_grant",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "standing_policy_id": {
+        "default": null,
+        "json": false
+      },
+      "policy_revision": {
+        "default": 0,
+        "json": false
+      },
+      "owner_id": {
+        "default": null,
+        "json": false
+      },
+      "contact_id": {
+        "default": null,
+        "json": false
+      },
+      "version_id": {
+        "default": null,
+        "json": false
+      },
+      "endpoint_revision": {
+        "default": null,
+        "json": false
+      },
+      "revision": {
+        "default": 1,
+        "json": false
+      },
+      "kind": {
+        "default": "once",
+        "json": false
+      },
+      "purpose": {
+        "default": "",
+        "json": false
+      },
+      "sensitive_authorized": {
+        "default": false,
+        "json": false
+      },
+      "expires_at": {
+        "default": null,
+        "json": false
+      },
+      "revoked_at": {
+        "default": null,
+        "json": false
+      },
+      "max_requests": {
+        "default": 1,
+        "json": false
+      },
+      "requests_used": {
+        "default": 0,
+        "json": false
+      },
+      "channel": {
+        "default": "in_app",
+        "json": false
+      },
+      "identity_kind": {
+        "default": "email",
+        "json": false
+      }
+    }
+  },
+  "Subscription": {
+    "table": "exchange_subscription",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "owner_id": {
+        "default": null,
+        "json": false
+      },
+      "plan": {
+        "default": "free",
+        "json": false
+      },
+      "plan_version": {
+        "default": "2026-11-07",
+        "json": false
+      },
+      "status": {
+        "default": "free",
+        "json": false
+      },
+      "provider_customer_id": {
+        "default": "",
+        "json": false
+      },
+      "provider_subscription_id": {
+        "default": "",
+        "json": false
+      },
+      "period_start": {
+        "default": null,
+        "json": false
+      },
+      "period_end": {
+        "default": null,
+        "json": false
+      },
+      "cancel_at_period_end": {
+        "default": false,
+        "json": false
+      },
+      "data_mode": {
+        "default": "sandbox",
+        "json": false
+      }
+    }
+  },
+  "UsagePeriod": {
+    "table": "exchange_usageperiod",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "owner_id": {
+        "default": null,
+        "json": false
+      },
+      "starts_at": {
+        "default": null,
+        "json": false
+      },
+      "ends_at": {
+        "default": null,
+        "json": false
+      },
+      "reserved": {
+        "default": 0,
+        "json": false
+      },
+      "consumed": {
+        "default": 0,
+        "json": false
+      },
+      "bandwidth_reserved": {
+        "default": 0,
+        "json": false
+      },
+      "bandwidth_used": {
+        "default": 0,
+        "json": false
+      },
+      "data_mode": {
+        "default": "live",
+        "json": false
+      }
+    }
+  },
+  "Transfer": {
+    "table": "exchange_transfer",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "owner_id": {
+        "default": null,
+        "json": false
+      },
+      "contact_id": {
+        "default": null,
+        "json": false
+      },
+      "version_id": {
+        "default": null,
+        "json": false
+      },
+      "grant_id": {
+        "default": null,
+        "json": false
+      },
+      "operation_id": {
+        "default": "",
+        "json": false
+      },
+      "recipient_email": {
+        "default": "",
+        "json": false
+      },
+      "recipient_phone": {
+        "default": "",
+        "json": false
+      },
+      "channel": {
+        "default": "in_app",
+        "json": false
+      },
+      "binding_version": {
+        "default": 3,
+        "json": false
+      },
+      "endpoint_revision_snapshot": {
+        "default": 1,
+        "json": false
+      },
+      "binding": {
+        "default": "",
+        "json": false
+      },
+      "status": {
+        "default": "queued",
+        "json": false
+      },
+      "data_mode": {
+        "default": "",
+        "json": false
+      },
+      "expires_at": {
+        "default": null,
+        "json": false
+      },
+      "usage_period_id": {
+        "default": null,
+        "json": false
+      },
+      "quota_state": {
+        "default": "reserved",
+        "json": false
+      },
+      "provider_id": {
+        "default": "",
+        "json": false
+      },
+      "accepted_at": {
+        "default": null,
+        "json": false
+      },
+      "accessed_at": {
+        "default": null,
+        "json": false
+      },
+      "revoked_at": {
+        "default": null,
+        "json": false
+      },
+      "failure_code": {
+        "default": "",
+        "json": false
+      }
+    }
+  },
+  "UsageEntry": {
+    "table": "exchange_usageentry",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "owner_id": {
+        "default": null,
+        "json": false
+      },
+      "transfer_id": {
+        "default": null,
+        "json": false
+      },
+      "kind": {
+        "default": "",
+        "json": false
+      },
+      "units": {
+        "default": null,
+        "json": false
+      },
+      "data_mode": {
+        "default": "",
+        "json": false
+      }
+    }
+  },
+  "Mail": {
+    "table": "exchange_mail",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "owner_id": {
+        "default": null,
+        "json": false
+      },
+      "transfer_id": {
+        "default": null,
+        "json": false
+      },
+      "destination": {
+        "default": "",
+        "json": false
+      },
+      "channel": {
+        "default": "email",
+        "json": false
+      },
+      "subject": {
+        "default": "",
+        "json": false
+      },
+      "body": {
+        "default": "",
+        "json": false
+      },
+      "idempotency_key": {
+        "default": "",
+        "json": false
+      },
+      "status": {
+        "default": "queued",
+        "json": false
+      },
+      "data_mode": {
+        "default": "",
+        "json": false
+      },
+      "provider_id": {
+        "default": "",
+        "json": false
+      },
+      "attempts": {
+        "default": 0,
+        "json": false
+      },
+      "first_attempt_at": {
+        "default": null,
+        "json": false
+      },
+      "next_attempt_at": {
+        "default": "$now",
+        "json": false
+      },
+      "lease_until": {
+        "default": null,
+        "json": false
+      },
+      "failure_code": {
+        "default": "",
+        "json": false
+      },
+      "cost_usd": {
+        "default": null,
+        "json": false
+      },
+      "budget_reserved": {
+        "default": false,
+        "json": false
+      }
+    }
+  },
+  "EmailBudget": {
+    "table": "exchange_emailbudget",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "date": {
+        "default": null,
+        "json": false
+      },
+      "reserved_count": {
+        "default": 0,
+        "json": false
+      },
+      "reserved_usd": {
+        "default": 0,
+        "json": false
+      }
+    }
+  },
+  "PhoneBudget": {
+    "table": "exchange_phonebudget",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "date": {
+        "default": null,
+        "json": false
+      },
+      "reserved_count": {
+        "default": 0,
+        "json": false
+      },
+      "reserved_usd": {
+        "default": 0,
+        "json": false
+      }
+    }
+  },
+  "Challenge": {
+    "table": "exchange_challenge",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "owner_id": {
+        "default": null,
+        "json": false
+      },
+      "contact_id": {
+        "default": null,
+        "json": false
+      },
+      "transfer_id": {
+        "default": null,
+        "json": false
+      },
+      "scope": {
+        "default": "",
+        "json": false
+      },
+      "channel": {
+        "default": "email",
+        "json": false
+      },
+      "destination": {
+        "default": "",
+        "json": false
+      },
+      "data_mode": {
+        "default": "live",
+        "json": false
+      },
+      "token_hash": {
+        "default": "",
+        "json": false
+      },
+      "code_hash": {
+        "default": "",
+        "json": false
+      },
+      "endpoint_revision": {
+        "default": 0,
+        "json": false
+      },
+      "attempts": {
+        "default": 0,
+        "json": false
+      },
+      "expires_at": {
+        "default": null,
+        "json": false
+      },
+      "consumed_at": {
+        "default": null,
+        "json": false
+      }
+    }
+  },
+  "AuditEvent": {
+    "table": "exchange_auditevent",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "owner_id": {
+        "default": null,
+        "json": false
+      },
+      "event_type": {
+        "default": "",
+        "json": false
+      },
+      "trace_id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "object_id": {
+        "default": "",
+        "json": false
+      },
+      "decision": {
+        "default": "",
+        "json": false
+      },
+      "data_mode": {
+        "default": "live",
+        "json": false
+      },
+      "detail": {
+        "default": {},
+        "json": true
+      },
+      "schema_version": {
+        "default": 1,
+        "json": false
+      }
+    }
+  },
+  "IncomingRequest": {
+    "table": "exchange_incomingrequest",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "contact_id": {
+        "default": null,
+        "json": false
+      },
+      "owner_id": {
+        "default": null,
+        "json": false
+      },
+      "operation_id": {
+        "default": "",
+        "json": false
+      },
+      "purpose": {
+        "default": "",
+        "json": false
+      },
+      "outcomes": {
+        "default": [],
+        "json": true
+      },
+      "status": {
+        "default": "received",
+        "json": false
+      }
+    }
+  },
+  "BillingEvent": {
+    "table": "exchange_billingevent",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "provider_event_id": {
+        "default": "",
+        "json": false
+      },
+      "kind": {
+        "default": "",
+        "json": false
+      },
+      "status": {
+        "default": "received",
+        "json": false
+      },
+      "data_mode": {
+        "default": "",
+        "json": false
+      },
+      "object_id": {
+        "default": "",
+        "json": false
+      },
+      "occurred_at": {
+        "default": null,
+        "json": false
+      }
+    }
+  },
+  "RateLimit": {
+    "table": "exchange_ratelimit",
+    "fields": {
+      "key": {
+        "default": "",
+        "json": false
+      },
+      "window": {
+        "default": null,
+        "json": false
+      },
+      "count": {
+        "default": 0,
+        "json": false
+      }
+    }
+  },
+  "Notification": {
+    "table": "exchange_notification",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "owner_id": {
+        "default": null,
+        "json": false
+      },
+      "external_id": {
+        "default": "",
+        "json": false
+      },
+      "body": {
+        "default": "",
+        "json": false
+      },
+      "link": {
+        "default": "",
+        "json": false
+      },
+      "read_at": {
+        "default": null,
+        "json": false
+      }
+    }
+  },
+  "InboxItem": {
+    "table": "exchange_inboxitem",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "recipient_id": {
+        "default": null,
+        "json": false
+      },
+      "transfer_id": {
+        "default": null,
+        "json": false
+      }
+    }
+  },
+  "FeedbackBridge": {
+    "table": "exchange_feedbackbridge",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "owner_id": {
+        "default": null,
+        "json": false
+      },
+      "title": {
+        "default": "",
+        "json": false
+      },
+      "body": {
+        "default": "",
+        "json": false
+      },
+      "visibility": {
+        "default": "",
+        "json": false
+      },
+      "exported_at": {
+        "default": null,
+        "json": false
+      },
+      "last_notified_state": {
+        "default": "",
+        "json": false
+      }
+    }
+  },
+  "ProductMetric": {
+    "table": "exchange_productmetric",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "owner_id": {
+        "default": null,
+        "json": false
+      },
+      "kind": {
+        "default": "",
+        "json": false
+      },
+      "campaign": {
+        "default": "",
+        "json": false
+      },
+      "feature": {
+        "default": "",
+        "json": false
+      },
+      "data_mode": {
+        "default": "",
+        "json": false
+      }
+    }
+  },
+  "CheckoutAttempt": {
+    "table": "exchange_checkoutattempt",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "owner_id": {
+        "default": null,
+        "json": false
+      },
+      "plan": {
+        "default": "",
+        "json": false
+      },
+      "provider_id": {
+        "default": "",
+        "json": false
+      },
+      "url": {
+        "default": "",
+        "json": false
+      },
+      "status": {
+        "default": "preparing",
+        "json": false
+      },
+      "data_mode": {
+        "default": "",
+        "json": false
+      }
+    }
+  },
+  "Matter": {
+    "table": "exchange_matter",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "owner_id": {
+        "default": null,
+        "json": false
+      },
+      "name": {
+        "default": "",
+        "json": false
+      }
+    }
+  },
+  "StandingPolicy": {
+    "table": "exchange_standingpolicy",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "owner_id": {
+        "default": null,
+        "json": false
+      },
+      "contact_id": {
+        "default": null,
+        "json": false
+      },
+      "recipient_id": {
+        "default": null,
+        "json": false
+      },
+      "matter_id": {
+        "default": null,
+        "json": false
+      },
+      "operation_id": {
+        "default": "",
+        "json": false
+      },
+      "endpoint_revision": {
+        "default": null,
+        "json": false
+      },
+      "identity_kind": {
+        "default": "",
+        "json": false
+      },
+      "channel": {
+        "default": "in_app",
+        "json": false
+      },
+      "data_mode": {
+        "default": "",
+        "json": false
+      },
+      "document_types": {
+        "default": [],
+        "json": true
+      },
+      "initial_versions": {
+        "default": {},
+        "json": true
+      },
+      "include_future_files": {
+        "default": false,
+        "json": false
+      },
+      "include_future_versions": {
+        "default": false,
+        "json": false
+      },
+      "include_sensitive": {
+        "default": false,
+        "json": false
+      },
+      "expires_at": {
+        "default": null,
+        "json": false
+      },
+      "max_requests": {
+        "default": 100,
+        "json": false
+      },
+      "requests_used": {
+        "default": 0,
+        "json": false
+      },
+      "revision": {
+        "default": 1,
+        "json": false
+      },
+      "revoked_at": {
+        "default": null,
+        "json": false
+      }
+    }
+  },
+  "NeonSession": {
+    "table": "exchange_neonsession",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "owner_id": {
+        "default": null,
+        "json": false
+      },
+      "upstream_cookie": {
+        "default": "",
+        "json": false
+      },
+      "upstream_id": {
+        "default": "",
+        "json": false
+      },
+      "expires_at": {
+        "default": null,
+        "json": false
+      },
+      "revoked_at": {
+        "default": null,
+        "json": false
+      }
+    }
+  },
+  "NeonOAuthAttempt": {
+    "table": "exchange_neonoauthattempt",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "code_challenge": {
+        "default": "",
+        "json": false
+      },
+      "redirect_uri": {
+        "default": "",
+        "json": false
+      },
+      "code_hash": {
+        "default": "",
+        "json": false
+      },
+      "session_id": {
+        "default": null,
+        "json": false
+      },
+      "expires_at": {
+        "default": null,
+        "json": false
+      },
+      "consumed_at": {
+        "default": null,
+        "json": false
+      }
+    }
+  },
+  "CustomerToken": {
+    "table": "exchange_customertoken",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "neon_session_id": {
+        "default": null,
+        "json": false
+      },
+      "owner_id": {
+        "default": null,
+        "json": false
+      },
+      "kind": {
+        "default": "",
+        "json": false
+      },
+      "name": {
+        "default": "",
+        "json": false
+      },
+      "token_hash": {
+        "default": "",
+        "json": false
+      },
+      "policy_id": {
+        "default": null,
+        "json": false
+      },
+      "policy_revision": {
+        "default": 0,
+        "json": false
+      },
+      "data_mode": {
+        "default": "",
+        "json": false
+      },
+      "expires_at": {
+        "default": null,
+        "json": false
+      },
+      "revoked_at": {
+        "default": null,
+        "json": false
+      }
+    }
+  },
+  "CaseRequest": {
+    "table": "exchange_caserequest",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "requester_id": {
+        "default": null,
+        "json": false
+      },
+      "policy_id": {
+        "default": null,
+        "json": false
+      },
+      "operation_id": {
+        "default": "",
+        "json": false
+      },
+      "input_hash": {
+        "default": "",
+        "json": false
+      },
+      "result": {
+        "default": {},
+        "json": true
+      }
+    }
+  },
+  "ChatExchange": {
+    "table": "exchange_chatexchange",
+    "fields": {
+      "id": {
+        "default": "$uuid",
+        "json": false
+      },
+      "created_at": {
+        "default": "$now",
+        "json": false
+      },
+      "owner_id": {
+        "default": null,
+        "json": false
+      },
+      "operation_id": {
+        "default": "",
+        "json": false
+      },
+      "input_hash": {
+        "default": "",
+        "json": false
+      },
+      "message": {
+        "default": "",
+        "json": false
+      },
+      "reply": {
+        "default": "",
+        "json": false
+      },
+      "result": {
+        "default": {},
+        "json": true
+      }
+    }
+  }
+}

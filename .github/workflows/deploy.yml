@@ -6,55 +6,71 @@ on:
     branches: [dev]
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: development-deployment
   cancel-in-progress: false
 jobs:
   deploy-development:
-    if: github.event.workflow_run.conclusion == 'success' && vars.DEVELOPMENT_DEPLOY_ENABLED == 'true'
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'dev' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      vars.DEVELOPMENT_DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
       name: development
-      url: ${{ vars.DEVELOPMENT_APP_URL }}
-    permissions:
-      contents: read
-      packages: write
-      deployments: write
+      url: https://fyde-dev.mehmetuzgoren.workers.dev
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
-      - name: Build immutable application image
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            cloudflare/package-lock.json
+      - name: Confirm this verified revision is still dev
         env:
-          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
-        run: docker build --build-arg RELEASE_SHA="$RELEASE_SHA" -t "ghcr.io/mehmetuzgoren/fyde:$RELEASE_SHA" .
-      - name: Publish verified image
-        env:
-          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
-        run: |
-          printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username '${{ github.actor }}' --password-stdin
-          docker push "ghcr.io/mehmetuzgoren/fyde:$RELEASE_SHA"
-          docker inspect "ghcr.io/mehmetuzgoren/fyde:$RELEASE_SHA" --format '{{index .RepoDigests 0}}' > /tmp/fyde-image.txt
-      - name: Call constrained host deployment command
-        env:
-          DEPLOY_KEY: ${{ secrets.DEVELOPMENT_DEPLOY_SSH_KEY }}
-          KNOWN_HOSTS: ${{ secrets.DEVELOPMENT_KNOWN_HOSTS }}
-          DEPLOY_HOST: ${{ vars.DEVELOPMENT_DEPLOY_HOST }}
+          GH_TOKEN: ${{ github.token }}
           RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          install -d -m 700 ~/.ssh
-          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/fyde-deploy
-          chmod 600 ~/.ssh/fyde-deploy
-          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
-          IMAGE=$(cat /tmp/fyde-image.txt)
-          ssh -i ~/.ssh/fyde-deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_HOST" "fyde-deploy $IMAGE $RELEASE_SHA"
-      - name: Verify hosted release identity
+          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/dev" --jq .commit.sha)" = "$RELEASE_SHA"
+      - run: npm ci --prefix backend
+      - run: npm --prefix backend run build
+      - name: Deploy API and scheduled file processor to Neon
+        working-directory: backend
         env:
-          APP_URL: ${{ vars.DEVELOPMENT_APP_URL }}
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+          SITE_URL: https://fyde-dev.mehmetuzgoren.workers.dev
+        run: >-
+          node_modules/.bin/neon deploy --config neon.ts
+          --project-id plain-moon-84345799 --branch br-little-glitter-beqgxchi
+          --no-env-pull
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: fyde-web-${{ github.event.workflow_run.head_sha }}
+          path: mobile/client/dist
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+      - run: npm ci --prefix cloudflare
+      - name: Deploy the verified website and API proxy to Cloudflare
+        working-directory: cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npm run deploy
+      - name: Verify hosted release identity and public pages
+        env:
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+          APP_URL: https://fyde-dev.mehmetuzgoren.workers.dev
         run: |
-          curl --fail --silent --max-time 15 "$APP_URL/health/" | python -c 'import json,sys; assert json.load(sys.stdin)["revision"] == sys.argv[1]' "$RELEASE_SHA"
-          curl --fail --silent --max-time 15 "$APP_URL/help/" > /dev/null
+          curl --fail --silent --retry 4 --retry-delay 5 --retry-all-errors --max-time 30 "$APP_URL/health/" | python -c 'import json,sys; result=json.load(sys.stdin); assert result["revision"] == sys.argv[1], result' "$RELEASE_SHA"
+          for path in / /help /privacy /pricing; do
+            curl --fail --silent --max-time 20 "$APP_URL$path" > /dev/null
+          done

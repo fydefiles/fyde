@@ -1,10 +1,14 @@
-from django.contrib.auth.views import LogoutView
 from django.urls import path
 
 from company import views as company
-from exchange import api, billing, chat_views, views
+from exchange import api, auth_views, billing, chat_views, views
 
 urlpatterns = [
+    path("api/v1/auth/config/", api.auth_config),
+    path("api/v1/auth/verify/", api.auth_verify),
+    path("api/v1/auth/send-code/", api.auth_send_code),
+    path("api/v1/auth/google/start/", api.auth_google_start),
+    path("api/v1/auth/google/exchange/", api.auth_google_exchange),
     path("api/v1/login/", api.sign_in),
     path("api/v1/signup/", api.sign_up),
     path("api/v1/logout/", api.sign_out),
@@ -34,9 +38,13 @@ urlpatterns = [
     path("api/agents/v1/received/<uuid:item_id>/download/", api.download_received),
     path("", views.landing, name="landing"),
     path("health/", views.health, name="health"),
-    path("signup/", views.signup, name="signup"),
-    path("login/", views.EmailLogin.as_view(), name="login"),
-    path("logout/", LogoutView.as_view(), name="logout"),
+    path("signup/", auth_views.sign_up, name="signup"),
+    path("login/", auth_views.sign_in, name="login"),
+    path("logout/", auth_views.sign_out, name="logout"),
+    path("auth/verify-email/", auth_views.verify_email, name="neon_verify_email"),
+    path("auth/reset-password/", auth_views.password_reset, name="neon_password_reset"),
+    path("auth/google/start/", auth_views.google_start, name="neon_google_start"),
+    path("auth/google/callback/", auth_views.google_callback, name="neon_google_callback"),
     path("pricing/", views.pricing, name="pricing"),
     path("privacy/", views.privacy, name="privacy"),
     path("help/", company.help_page, name="help"),

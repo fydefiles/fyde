@@ -1,6 +1,4 @@
-import hashlib
 import re
-import secrets
 import uuid
 from datetime import timedelta
 
@@ -36,7 +34,8 @@ from .models import (
     UsagePeriod,
 )
 from .policy import PolicyError, audit, check_transfer, current_period, entitlement, plans
-from .storage import add_file, blob_path
+from .storage import add_file
+from . import blobstore
 from .transfers import change_phone, change_endpoint, create_transfer, fulfill_request, revoke_transfer
 
 
@@ -362,13 +361,14 @@ def document(request, document_id):
                 "Preferred version updated. Existing permissions still cover their original versions.",
             )
         elif request.POST.get("action") == "delete":
-            if not request.user.check_password(request.POST.get("password", "")):
+            from .neon_auth import require_recent_confirmation
+
+            if not require_recent_confirmation(request):
                 messages.error(
-                    request, "Enter your password to delete this document and every stored version."
+                    request, "Confirm your identity to delete this document. If you use Neon, sign in within the last five minutes and enter your email."
                 )
             else:
                 with transaction.atomic():
-                    paths = [blob_path(v) for v in document.versions.all()]
                     Grant.objects.filter(version__document=document).update(
                         revoked_at=timezone.now(), revision=F("revision") + 1
                     )
@@ -379,9 +379,9 @@ def document(request, document_id):
                     document.title, document.tags = "Deleted document", ""
                     document.save(update_fields=["deleted_at", "title", "tags"])
                     document.versions.update(extracted_text="", original_name="Deleted file", state="deleted")
-                    transaction.on_commit(lambda: [p.unlink(missing_ok=True) for p in paths])
+                    transaction.on_commit(blobstore.purge_deleted)
                 messages.success(
-                    request, "Document bytes and searchable text deleted. Sharing links are revoked."
+                    request, "Sharing revoked and searchable text removed. File removal is queued for retry if needed."
                 )
                 return redirect("dashboard")
     return render(
@@ -401,18 +401,10 @@ def owner_download(request, version_id):
 
 
 def checked_file_response(version):
-    path = blob_path(version)
     try:
-        source = path.open("rb")
-    except OSError:
+        source = blobstore.open_verified(version)
+    except PolicyError:
         raise Http404 from None
-    digest = hashlib.sha256()
-    for chunk in iter(lambda: source.read(65536), b""):
-        digest.update(chunk)
-    if not secrets.compare_digest(digest.hexdigest(), version.sha256):
-        source.close()
-        raise Http404
-    source.seek(0)
     response = FileResponse(
         source, as_attachment=True, filename=version.original_name, content_type="application/octet-stream"
     )

@@ -3,6 +3,7 @@ import os
 import re
 import socket
 import struct
+import tempfile
 import uuid
 from pathlib import Path
 
@@ -12,6 +13,7 @@ from django.db.models import Sum
 
 from .models import Document, FileVersion, User
 from .policy import PolicyError, audit, entitlement
+from . import blobstore
 
 ALLOWED = {
     ".txt": "text/plain",
@@ -23,11 +25,7 @@ ALLOWED = {
 
 
 def blob_path(version):
-    root = settings.MEDIA_ROOT.resolve()
-    path = (root / version.blob_key).resolve()
-    if not path.is_relative_to(root):
-        raise PolicyError("invalid_storage_path", "The private file is unavailable.")
-    return path
+    return blobstore.local_path(version.blob_key)
 
 
 def add_file(owner, upload, *, title="", tags="", sensitive=False, document_id=None):
@@ -39,19 +37,19 @@ def add_file(owner, upload, *, title="", tags="", sensitive=False, document_id=N
     if upload.size == 0 or upload.size > plan["file_mib"] * 1024 * 1024:
         raise PolicyError("file_size_limit", f"Files must be between 1 byte and {plan['file_mib']} MiB.")
     key = f"{owner.pk}/{uuid.uuid4().hex}"
-    path = settings.MEDIA_ROOT / key
-    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     digest = hashlib.sha256()
     actual = 0
+    uploaded = False
     try:
-        with path.open("xb") as target:
-            os.chmod(path, 0o600)
+        with tempfile.SpooledTemporaryFile(max_size=1024 * 1024, mode="w+b") as target:
             for chunk in upload.chunks():
                 actual += len(chunk)
                 if actual > plan["file_mib"] * 1024 * 1024:
                     raise PolicyError("file_size_limit", "The file exceeds the upload limit.")
                 digest.update(chunk)
                 target.write(chunk)
+            blobstore.put(key, target, size=actual, digest=digest.hexdigest(), mime=ALLOWED[extension])
+            uploaded = True
         with transaction.atomic():
             User.objects.select_for_update().get(pk=owner.pk)
             used = (
@@ -91,7 +89,11 @@ def add_file(owner, upload, *, title="", tags="", sensitive=False, document_id=N
             audit(owner, "file.uploaded", version.pk, "quarantined")
         return version
     except Exception:
-        path.unlink(missing_ok=True)
+        if uploaded:
+            try:
+                blobstore.delete(key)
+            except PolicyError:
+                pass
         raise
 
 
@@ -111,10 +113,23 @@ def clamav_scan(path):
 
 def inspect_version(version):
     """Only the customer worker reads uploads. This never runs in a business agent."""
+    try:
+        with blobstore.materialize(version) as path:
+            return inspect_local_version(version, path)
+    except PolicyError as error:
+        # A temporary network failure can be retried by the worker.
+        if error.code == "storage_unavailable":
+            return version
+        version.extraction_state = "blocked"
+        version.check_detail = str(error)[:250]
+        version.save(update_fields=["extraction_state", "check_detail"])
+        return version
+
+
+def inspect_local_version(version, path):
     import subprocess
     import sys
 
-    path = blob_path(version)
     try:
         raw = path.read_bytes()
         if hashlib.sha256(raw).hexdigest() != version.sha256:
@@ -168,6 +183,16 @@ def inspect_version(version):
             if isinstance(error, PolicyError)
             else "File checks failed; manual review required."
         )
-    version.save(update_fields=["state", "extraction_state", "extracted_text", "check_detail"])
+    updated = FileVersion.objects.filter(
+        pk=version.pk, document__deleted_at=None, state="quarantined"
+    ).update(
+        state=version.state,
+        extraction_state=version.extraction_state,
+        extracted_text=version.extracted_text,
+        check_detail=version.check_detail,
+    )
+    if not updated:
+        version.refresh_from_db()
+        return version
     audit(version.document.owner, "file.indexed", version.pk, version.state)
     return version

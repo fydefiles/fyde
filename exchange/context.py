@@ -6,6 +6,7 @@ def app_context(request):
     return {
         "local_adapter": settings.EMAIL_ADAPTER == "local",
         "app_name": "Fyde",
+        "neon_auth": settings.AUTH_PROVIDER == "neon",
         "subreddit_url": settings.SUBREDDIT_URL,
         "plan_policy": json.loads((settings.BASE_DIR / "content/plans.json").read_text()),
     }

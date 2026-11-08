@@ -19,6 +19,7 @@ DELIVERY_CHANNELS = [("in_app", "Fyde"), ("email", "Email"), ("phone", "Phone (S
 
 
 class User(AbstractUser):
+    neon_subject = models.CharField(max_length=128, unique=True, null=True, blank=True)
     email = models.EmailField(unique=True)
     email_verified = models.BooleanField(default=False)
     sharing_paused = models.BooleanField(default=False)
@@ -103,6 +104,7 @@ class FileVersion(Record):
     extracted_text = models.TextField(blank=True)
     check_detail = models.CharField(max_length=250, blank=True)
     source = models.CharField(max_length=30, default="upload")
+    blob_deleted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["document", "number"], name="document_version")]
@@ -362,7 +364,25 @@ class StandingPolicy(Record):
         ]
 
 
+class NeonSession(Record):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    upstream_cookie = models.TextField()
+    upstream_id = models.CharField(max_length=128)
+    expires_at = models.DateTimeField()
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+
+class NeonOAuthAttempt(Record):
+    code_challenge = models.CharField(max_length=64)
+    redirect_uri = models.CharField(max_length=500)
+    code_hash = models.CharField(max_length=64, blank=True)
+    session = models.ForeignKey(NeonSession, null=True, blank=True, on_delete=models.CASCADE)
+    expires_at = models.DateTimeField()
+    consumed_at = models.DateTimeField(null=True, blank=True)
+
+
 class CustomerToken(Record):
+    neon_session = models.ForeignKey("NeonSession", null=True, blank=True, on_delete=models.CASCADE)
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
     kind = models.CharField(
         max_length=10, choices=[("device", "Mobile device"), ("agent", "Recipient agent")]

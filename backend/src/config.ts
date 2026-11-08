@@ -14,6 +14,7 @@ export type Config = {
   region: string;
   scannerHost: string;
   scannerPort: number;
+  googleEnabled?: boolean;
 };
 
 export function config(env: NodeJS.ProcessEnv = process.env): Config {
@@ -57,5 +58,6 @@ export function config(env: NodeJS.ProcessEnv = process.env): Config {
     region: env.AWS_REGION || "us-east-2",
     scannerHost: env.CLAMAV_HOST || "",
     scannerPort: Number(env.CLAMAV_PORT || "3310"),
+    googleEnabled: env.FYDE_GOOGLE_AUTH_ENABLED !== "false",
   };
 }

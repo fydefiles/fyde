@@ -81,6 +81,7 @@ function useClientContent(): Frame {
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const [managedAuth, setManagedAuth] = useState(false);
+  const [googleEnabled, setGoogleEnabled] = useState(false);
   const [verification, setVerification] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
   const [credentials, setCredentials] = useState<
@@ -152,8 +153,11 @@ function useClientContent(): Frame {
     [token],
   );
   useEffect(() => {
-    call<{ provider: string }>("/api/v1/auth/config/", null)
-      .then((config) => setManagedAuth(config.provider === "neon"))
+    call<{ provider: string; google?: boolean }>("/api/v1/auth/config/", null)
+      .then((config) => {
+        setManagedAuth(config.provider === "neon");
+        setGoogleEnabled(config.google === true);
+      })
       .catch((e) => setError(e.message));
     restoreSession()
       .then((value) => {
@@ -378,12 +382,14 @@ function useClientContent(): Frame {
           />
           {managedAuth && !verification && (
             <>
-              <Button
-                title="Continue with Google"
-                secondary
-                disabled={busy}
-                onPress={loginWithGoogle}
-              />
+              {googleEnabled && (
+                <Button
+                  title="Continue with Google"
+                  secondary
+                  disabled={busy}
+                  onPress={loginWithGoogle}
+                />
+              )}
               <Button
                 title="Forgot your password?"
                 secondary

@@ -2,13 +2,15 @@
   "expo": {
     "name": "Fyde",
     "slug": "fyde",
+    "owner": "izbirakin",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.fyde.mobile"
+      "bundleIdentifier": "app.fyde.mobile",
+      "infoPlist": { "ITSAppUsesNonExemptEncryption": false }
     },
     "android": {
       "adaptiveIcon": {

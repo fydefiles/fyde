@@ -118,6 +118,12 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 30 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_NAME = os.environ.get(
+    "SESSION_COOKIE_NAME", "fyde_neon_session" if AUTH_PROVIDER == "neon" else "sessionid"
+)
+CSRF_COOKIE_NAME = os.environ.get(
+    "CSRF_COOKIE_NAME", "fyde_neon_csrf" if AUTH_PROVIDER == "neon" else "csrftoken"
+)
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SECURE = not DEBUG

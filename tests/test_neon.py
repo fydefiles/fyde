@@ -205,13 +205,19 @@ class NeonIdentityJourney(TestCase):
             middleware.index("django.contrib.auth.middleware.AuthenticationMiddleware") + 1,
             "exchange.neon_auth.SessionMiddleware",
         )
-        with override_settings(MIDDLEWARE=middleware):
+        with override_settings(
+            MIDDLEWARE=middleware, SESSION_COOKIE_NAME="fyde_neon_session", CSRF_COOKIE_NAME="fyde_neon_csrf"
+        ):
             browser = Client()
             result = browser.post(
                 reverse("login"), {"username": self.identity["email"], "password": "Not-stored-password-1!"}
             )
             self.assertEqual(result.status_code, 302)
             self.assertIn("neon_session_id", browser.session)
+            self.assertIn("fyde_neon_session", result.cookies)
+            self.assertIn("fyde_neon_csrf", result.cookies)
+            self.assertNotIn("sessionid", result.cookies)
+            self.assertNotIn("csrftoken", result.cookies)
             self.valid = False
             self.assertRedirects(browser.get(reverse("dashboard")), reverse("login"))
 

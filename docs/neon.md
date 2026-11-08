@@ -1,6 +1,6 @@
 # Neon backend
 
-Fyde supports Neon Postgres, private Neon Object Storage, and managed Better Auth. Django owns file permissions and delivery. Browser sessions and native device credentials are bound to a verified Neon session; Fyde checks that session with Neon before granting access. Recipient-agent credentials remain bound to their explicit case permission.
+Fyde supports Neon Postgres, private Neon Object Storage, and managed Better Auth. The hosted TypeScript API owns file permissions and delivery. [Cloudflare and Neon hosting](cloudflare-neon.md) describes the current customer runtime; the Django details below document the retained local fixture and compatibility path. Browser sessions and native device credentials are bound to a verified Neon session; Fyde checks that session with Neon before granting access. Recipient-agent credentials remain bound to their explicit case permission.
 
 ## Development resources
 
@@ -81,4 +81,4 @@ The first command validates the local originals without writing remote objects. 
 
 Neon's S3 versioning and lifecycle configuration are currently not enforced. Fyde therefore keeps explicit versions and performs deletion itself. A Postgres instant restore leaves object storage unchanged; define and verify a separate object-backup procedure before a production launch. Development branches inherit their parent's objects, so previews should start with synthetic data. See [S3 compatibility](https://neon.com/docs/storage/s3-compatibility) and [bucket restore behavior](https://neon.com/docs/storage/buckets).
 
-The existing GitHub deployment remains disabled until a hosting environment and its credentials are configured. The local Neon runtime verifies cloud services, not public HTTPS hosting, physical-device Google sign-in, Android behavior, or a main-branch production release.
+The current customer deployment uses Cloudflare and Neon Functions; see its [delivery runbook](cloudflare-neon.md). Earlier local Neon evidence alone does not establish hosted acceptance, physical-device Google sign-in, Android behavior or a main-branch production release.

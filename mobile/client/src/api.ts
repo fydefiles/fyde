@@ -6,8 +6,11 @@ import * as Sharing from "expo-sharing";
 import type { FileCard } from "./types";
 
 export const API_ROOT = (
-  process.env.EXPO_PUBLIC_API_URL ||
-  (Platform.OS === "android" ? "http://10.0.2.2:8000" : "http://127.0.0.1:8000")
+  Platform.OS === "web" && typeof window !== "undefined"
+    ? window.location.origin
+    : process.env.EXPO_PUBLIC_API_URL || (!__DEV__
+      ? "https://fyde-dev.mehmetuzgoren.workers.dev"
+      : Platform.OS === "android" ? "http://10.0.2.2:8000" : "http://127.0.0.1:8000")
 ).replace(/\/$/, "");
 const key = "fyde.customer.session";
 function originCheck() {
@@ -37,7 +40,12 @@ export class ApiError extends Error {
   }
 }
 export async function restoreSession() {
-  if (Platform.OS === "web") return null;
+  if (Platform.OS === "web") {
+    const response = await fetch(API_ROOT + "/api/v1/session/", { credentials: "include" });
+    if (response.status === 401 || response.status === 404) return null;
+    if (!response.ok) throw new Error("Cannot restore your session. Please retry when connected.");
+    return "cookie";
+  }
   const raw = await SecureStore.getItemAsync(key);
   if (!raw) return null;
   try {
@@ -71,8 +79,9 @@ export async function call<T>(
   try {
     response = await expoFetch(API_ROOT + path, {
       method,
+      credentials: Platform.OS === "web" ? "include" : "omit",
       headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(token && token !== "cookie" ? { Authorization: `Bearer ${token}` } : {}),
         ...(data && !multipart ? { "Content-Type": "application/json" } : {}),
       },
       body: data
@@ -115,7 +124,8 @@ export async function download(file: FileCard, token: string) {
   const name = file.name.replace(/[^\w.()-]/g, "_").slice(0, 160);
   if (Platform.OS === "web") {
     const result = await fetch(API_ROOT + path, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: "include",
+      headers: token === "cookie" ? {} : { Authorization: `Bearer ${token}` },
     });
     if (!result.ok)
       throw new Error(

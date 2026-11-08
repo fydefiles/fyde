@@ -169,9 +169,10 @@ function useClientContent(): Frame {
   const onboarded = state?.user.onboarding_complete;
   useEffect(() => {
     if (onboarded === undefined) return;
+    if (["/privacy", "/help", "/pricing", "/feedback", "/document", "/receipts"].includes(pathname) || pathname.startsWith("/auth/")) return;
     if (!onboarded && tab !== "Setup" && tab !== "Account") setTab("Setup");
     if (onboarded && tab === "Setup") setTab("Chat");
-  }, [onboarded, tab, setTab]);
+  }, [onboarded, tab, setTab, pathname]);
   function navigate(destination: Tab) {
     Keyboard.dismiss();
     setError("");
@@ -246,7 +247,8 @@ function useClientContent(): Frame {
     setBusy(true);
     setError("");
     try {
-      await acceptLogin(await googleSignIn());
+      const result = await googleSignIn();
+      if (result) await acceptLogin(result);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -428,11 +430,9 @@ function useClientContent(): Frame {
               setError("");
             }}
           />
-          <Text style={ui.fine}>
-            Server: {API_ROOT}
-            {"\n"}Native sessions use device secure storage. Web preview
-            sessions stay in memory.
-          </Text>
+          <Text style={ui.fine}>Your files stay private until you choose to share them.</Text>
+          <Pressable accessibilityRole="link" onPress={() => router.push("/privacy")}><Text style={ui.fine}>Privacy and resource policies →</Text></Pressable>
+          <Pressable accessibilityRole="link" onPress={() => router.push("/help")}><Text style={ui.fine}>Help →</Text></Pressable>
         </ScrollView>
       ),
     };
@@ -448,6 +448,17 @@ function useClientContent(): Frame {
             onPress={() => refresh().catch((e) => setError(e.message))}
           />
           <Button title="Sign out" secondary onPress={endSession} />
+          <Button title="Sharing activity and receipts" secondary onPress={() => Linking.openURL(API_ROOT + "/receipts")} />
+          <Button title="Help and feedback" secondary onPress={() => router.push("/help")} />
+          <Button title="Privacy and resource policies" secondary onPress={() => router.push("/privacy")} />
+          {Platform.OS === "web" && <Button title="Export account metadata" secondary onPress={async () => {
+            try {
+              const metadata = await call("/api/v1/export/", token);
+              const url = URL.createObjectURL(new Blob([JSON.stringify(metadata, null, 2)], { type: "application/json" }));
+              const link = document.createElement("a"); link.href = url; link.download = "fyde-workspace.json";
+              document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+            } catch (e) { setError((e as Error).message); }
+          }} />}
         </View>
       ),
     };

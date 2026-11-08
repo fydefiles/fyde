@@ -11,7 +11,8 @@ export type LoginResult = {
   sign_in_required?: boolean;
 };
 
-export async function googleSignIn(): Promise<LoginResult> {
+const pendingKey = "fyde.google.pending";
+export async function googleSignIn(): Promise<LoginResult | void> {
   const verifier = (Crypto.randomUUID() + Crypto.randomUUID()).replace(
     /-/g,
     "",
@@ -35,6 +36,13 @@ export async function googleSignIn(): Promise<LoginResult> {
     "POST",
     { code_challenge: challenge, redirect_uri: callback },
   );
+  if (Platform.OS === "web") {
+    window.sessionStorage.setItem(pendingKey, JSON.stringify({
+      attempt: attempt.attempt, verifier, expires: Date.now() + 300_000,
+    }));
+    window.location.assign(attempt.url);
+    return;
+  }
   const result = await WebBrowser.openAuthSessionAsync(attempt.url, callback);
   if (result.type !== "success")
     throw new Error("Google sign-in was cancelled.");
@@ -50,4 +58,20 @@ export async function googleSignIn(): Promise<LoginResult> {
     code_verifier: verifier,
     device_name: `Fyde ${Platform.OS}`,
   });
+}
+
+export async function completeWebGoogleSignIn(): Promise<void> {
+  const url = new URL(window.location.href);
+  const code = url.searchParams.get("code");
+  const attempt = url.searchParams.get("attempt");
+  const raw = window.sessionStorage.getItem(pendingKey);
+  window.sessionStorage.removeItem(pendingKey);
+  window.history.replaceState(null, "", url.pathname);
+  const pending = raw ? JSON.parse(raw) : null;
+  if (!pending || pending.expires < Date.now() || pending.attempt !== attempt || !code)
+    throw new Error("This sign-in attempt expired or belongs to another browser. Return to Fyde and sign in again.");
+  await call<LoginResult>("/api/v1/auth/google/exchange/", null, "POST", {
+    attempt, code, code_verifier: pending.verifier, device_name: "Fyde web",
+  });
+  window.location.replace("/");
 }

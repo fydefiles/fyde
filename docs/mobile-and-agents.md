@@ -1,6 +1,6 @@
 # Chat, mobile setup and case agents
 
-Fyde opens in chat on the web and in the Expo React Native client. Both use the same private conversation and trusted Django services. The web file/contact workspace remains available at `/app/workspace/`.
+Fyde opens in chat on the web and in the Expo React Native client. Both use the same private conversation and trusted customer API. The hosted web app uses Neon Functions; the local Django fixture workspace remains at `/app/workspace/`.
 
 ## First use
 
@@ -31,9 +31,9 @@ npx expo install --check
 EXPO_PUBLIC_API_URL=http://127.0.0.1:8000 npm run web -- --host localhost --port 8082
 ```
 
-This web command inspects the React Native client in a browser. It is separate from the Django web interface. Web preview sessions stay in memory. Native device sessions use Expo SecureStore, scoped to the configured server origin, and expire after at most 30 days. Sign-out revokes the session and removes cached received files where possible.
+This web command inspects the React Native client in a browser. The Cloudflare deployment serves its production web export. Hosted web sessions use an HttpOnly cookie and restore after a refresh; previews against the legacy Django bearer API keep their session in memory. Native device sessions use Expo SecureStore, scoped to the configured server origin, and expire after at most 30 days. Sign-out revokes the session and removes cached received files where possible.
 
-For local iOS development, install Xcode, CocoaPods and an available simulator runtime, then run `npm run ios`. Android development needs the Android SDK and an emulator or device; run `npm run android`. The default Android emulator API origin is `http://10.0.2.2:8000`. iOS simulator and web defaults use `http://127.0.0.1:8000`. A physical phone needs a server address it can reach. Release builds require an HTTPS `EXPO_PUBLIC_API_URL`.
+For local iOS development, install Xcode, CocoaPods and an available simulator runtime, then run `npm run ios`. Android development needs the Android SDK and an emulator or device; run `npm run android`. Local native development defaults to `http://10.0.2.2:8000` on the Android emulator or `http://127.0.0.1:8000` on iOS. Web requests use the current page origin. Native release builds default to `https://fyde-dev.mehmetuzgoren.workers.dev`; `EXPO_PUBLIC_API_URL` can select another HTTPS deployment. A physical phone needs an address it can reach.
 
 `npm run bundle` compiles production iOS, Android and web JavaScript/Hermes bundles. `eas.json` includes simulator, internal-preview and production profiles. EAS, signing, store upload and paid cloud builds have not been activated. The `app.fyde.mobile` application identifiers are provisional and must be confirmed before distribution. `EXPO_PUBLIC_*` values are public build configuration; never put secrets in them.
 
@@ -80,7 +80,7 @@ This protocol can be called by an external agent that implements it. A universal
 
 ## Customer and business boundaries
 
-Device credentials authorize the signed-in customer's UI operations. Case-agent credentials authorize one received permission and cannot browse unrelated owned files, read chat, change account preferences or create permissions. Agent credentials cannot be exchanged for device credentials. Cookie authentication never substitutes for a bearer credential on these APIs. Browser-origin access is explicitly allowed through `CUSTOMER_API_ORIGINS`; normal Django web forms retain CSRF protection.
+Device credentials authorize the signed-in customer's UI operations. Case-agent credentials authorize one received permission and cannot browse unrelated owned files, read chat, change account preferences or create permissions. Agent credentials cannot be exchanged for device credentials. Recipient-agent APIs require their scoped bearer credential. Native customer APIs use device bearer credentials; the hosted browser uses an HttpOnly session cookie with an exact-Origin mutation check. `CUSTOMER_API_ORIGINS` can add explicit browser origins. Legacy Django forms retain CSRF protection.
 
 Case responders belong to the customer data plane. Development and marketing agents remain in the separate company plane, with sanitized feedback and synthetic fixtures. They receive no customer-agent credential, private conversation, customer storage mount, production database credential or authority to edit these controls.
 

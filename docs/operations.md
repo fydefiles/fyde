@@ -78,6 +78,8 @@ After a dev merge, the deployment workflow must produce a development deployment
 
 The deployment script and rollback path are supplied and statically checked; hosted deployment/rollback have not been exercised because no host or credentials exist. Automatic rollback currently covers immediate deployment smoke failure. Continuous application-regression detection and delayed automatic rollback remain incomplete.
 
+The customer deployment now uses the [Cloudflare and Neon Functions workflow](cloudflare-neon.md). The container/SSH instructions above apply to the retained Python company runtime. Hosted customer deployment does not activate the company workers or release controller.
+
 ## Instagram and schedules
 
 The implemented adapter uses **Instagram API with Facebook Login**, a professional account linked to a Page, and approved publishing permissions. Do not mix in Instagram Login tokens/scopes. Configure the current `INSTAGRAM_API_VERSION`, Page token, account ID, and operator approval flag. Publishing is disabled by default. Public HTTPS asset URLs and a reachable public product CTA are required; a localhost demo package cannot publish.

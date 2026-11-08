@@ -18,6 +18,7 @@ ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,test
 SITE_URL = os.environ.get("SITE_URL", "http://127.0.0.1:8000").rstrip("/")
 CSRF_TRUSTED_ORIGINS = [SITE_URL]
 INSTALLED_APPS = [
+    "django.contrib.postgres",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -90,6 +91,24 @@ STATIC_ROOT = (
 STATICFILES_DIRS = [BASE_DIR / "static"]
 MEDIA_ROOT = VAR_DIR / "private"
 MEDIA_ROOT.mkdir(exist_ok=True, mode=0o700)
+SEARCH_EMBEDDING_URL = os.environ.get("SEARCH_EMBEDDING_URL", "").rstrip("/")
+SEARCH_EMBEDDING_AUTH = os.environ.get("SEARCH_EMBEDDING_AUTH", "google")
+SEARCH_GOOGLE_SERVICE_ACCOUNT = os.environ.get("SEARCH_GOOGLE_SERVICE_ACCOUNT", "")
+SEARCH_MIN_SIMILARITY = float(os.environ.get("SEARCH_MIN_SIMILARITY", "0.60"))
+SEARCH_EMBEDDING_TIMEOUT = float(os.environ.get("SEARCH_EMBEDDING_TIMEOUT", "30"))
+if SEARCH_EMBEDDING_URL:
+    from urllib.parse import urlsplit
+
+    embedding_url = urlsplit(SEARCH_EMBEDDING_URL)
+    local_inference = DEBUG and embedding_url.hostname in {"127.0.0.1", "localhost", "::1"}
+    if (
+        not embedding_url.hostname or embedding_url.username or embedding_url.password or embedding_url.query or embedding_url.fragment
+        or embedding_url.path not in {"", "/"}
+        or (embedding_url.scheme != "https" and not (local_inference and embedding_url.scheme == "http"))
+        or SEARCH_EMBEDDING_AUTH not in {"google", "none"}
+        or (SEARCH_EMBEDDING_AUTH == "none" and not local_inference)
+    ):
+        raise ImproperlyConfigured("Configure a private HTTPS embedding origin with Google authentication.")
 FILE_STORAGE = os.environ.get("FILE_STORAGE", "local")
 AUTH_PROVIDER = os.environ.get("AUTH_PROVIDER", "local")
 NEON_AUTH_BASE_URL = os.environ.get("NEON_AUTH_BASE_URL", "").rstrip("/")

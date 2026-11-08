@@ -379,6 +379,11 @@ def document(request, document_id):
                     document.title, document.tags = "Deleted document", ""
                     document.save(update_fields=["deleted_at", "title", "tags"])
                     document.versions.update(extracted_text="", original_name="Deleted file", state="deleted")
+                    from .models import SearchIndex, SearchSegment
+
+                    SearchSegment.objects.filter(version__document=document).delete()
+                    SearchIndex.objects.filter(version__document=document).delete()
+                    document.versions.update(page_offsets=[])
                     transaction.on_commit(blobstore.purge_deleted)
                 messages.success(
                     request, "Sharing revoked and searchable text removed. File removal is queued for retry if needed."

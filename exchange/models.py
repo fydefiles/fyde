@@ -3,6 +3,9 @@ import uuid
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
+from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.search import SearchVectorField
+from pgvector.django import VectorField
 
 DOCUMENT_TYPES = [
     ("general", "General"),
@@ -102,12 +105,44 @@ class FileVersion(Record):
     state = models.CharField(max_length=30, default="quarantined")
     extraction_state = models.CharField(max_length=30, default="pending")
     extracted_text = models.TextField(blank=True)
+    page_offsets = models.JSONField(default=list, db_default=[], blank=True)
     check_detail = models.CharField(max_length=250, blank=True)
     source = models.CharField(max_length=30, default="upload")
     blob_deleted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["document", "number"], name="document_version")]
+
+
+class SearchIndex(Record):
+    version = models.OneToOneField(FileVersion, on_delete=models.CASCADE, related_name="search_index")
+    fingerprint = models.CharField(max_length=180)
+    state = models.CharField(max_length=20, default="pending")
+    attempts = models.PositiveIntegerField(default=0)
+    available_at = models.DateTimeField(default=timezone.now)
+    lease_until = models.DateTimeField(null=True, blank=True)
+    lease_token = models.UUIDField(null=True, blank=True)
+    error_code = models.CharField(max_length=60, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["state", "available_at"], name="search_pending")]
+
+
+class SearchSegment(Record):
+    version = models.ForeignKey(FileVersion, on_delete=models.CASCADE, related_name="search_segments")
+    ordinal = models.PositiveIntegerField()
+    page = models.PositiveIntegerField(null=True, blank=True)
+    start = models.PositiveIntegerField()
+    end = models.PositiveIntegerField()
+    text = models.TextField()
+    normalized_text = models.TextField()
+    search_vector = SearchVectorField(null=True, blank=True)
+    embedding = VectorField(dimensions=768)
+    fingerprint = models.CharField(max_length=180)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["version", "ordinal"], name="version_segment")]
+        indexes = [GinIndex(fields=["search_vector"], name="segment_terms_gin")]
 
 
 class Grant(Record):

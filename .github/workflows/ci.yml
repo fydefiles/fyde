@@ -136,3 +136,11 @@ jobs:
           path: mobile/client/dist
       - run: npm --prefix cloudflare run check
       - run: npm --prefix cloudflare run check:production
+  production:
+    needs: [integration, release-boundary, mobile, typescript]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.PRODUCTION_DEPLOY_ENABLED == 'true'
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/deploy-production.yml
+    secrets: inherit

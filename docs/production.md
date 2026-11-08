@@ -18,7 +18,7 @@ Reload the app after changing public build configuration. A previously installed
 
 ## Releases
 
-`dev` continues to deploy the development website. A reviewed promotion PR from `dev` to `main` releases production. `main` requires the existing integration, release-boundary and TypeScript checks. Its successful push run triggers `Deploy approved production revision` when `PRODUCTION_DEPLOY_ENABLED=true`.
+`dev` continues to deploy the development website. A reviewed promotion PR from `dev` to `main` releases production. `main` requires the existing integration, release-boundary and TypeScript checks. After those checks and the mobile build pass, the same push run calls `Deploy approved production revision` when `PRODUCTION_DEPLOY_ENABLED=true`. The reusable deployment inherits the main ref, so the main-only environment rule still applies when the repository's default branch is dev.
 
 The `production` GitHub environment accepts `main` only. It stores a Neon deployment key limited to `fyde-prod` and a Cloudflare Individual Workers Editor token limited to `fyde`. Application secrets stay on their respective hosts. The migration owner's connection remains in a private local file and is absent from the deployed functions and GitHub deployment secrets.
 

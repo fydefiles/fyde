@@ -5,7 +5,7 @@ Fyde opens in chat on the web and in the Expo React Native client. Both use the 
 ## First use
 
 1. Create two accounts: a file owner and a recipient. Verify their email addresses. With the local adapter, use each account's labeled test outbox; no real email is sent.
-2. Open **Setup**. Create a case, such as “Immigration case,” and choose multiple files. Each file uploads separately, with its own result and safety checks. Supported formats and plan limits still apply; the app cannot import every local folder automatically.
+2. First-use onboarding opens automatically. Create a case, such as “Immigration case,” and choose multiple files. Each file uploads separately, with its own result and safety checks. Supported formats and plan limits still apply; the app cannot import every local folder automatically.
 3. Assign each file to its case and document type. Mark sensitive files explicitly. A filename or relationship label cannot authorize disclosure.
 4. Add the recipient's verified email and a relationship label, such as “Lawyer.” This label helps resolve chat instructions. It does not verify professional credentials or create a permission.
 5. Review an automatic case permission: recipient, case, document types, channel, expiry and request limit. Future files, future versions and sensitive files are separate choices. Explicitly enable the reviewed scope once.
@@ -20,7 +20,7 @@ Revoke the parent case permission or pause outgoing sharing to stop automatic re
 
 ## Run the mobile client
 
-The source is in `mobile/client/`. Expo Router owns navigation; React Native supplies the screens and file-picker/export controls. The project uses Expo SDK 58 and generated native projects. Do not edit generated `ios/` or `android/` files.
+The source is in `mobile/client/`. Chat is the default screen and the center bottom action is an icon-only chat button. The left search icon opens a dedicated page with a search field; Received is on the right. Profile/settings is in the upper-right. Onboarding has no bottom tab. After first use, say `Add files`, `Add a contact`, `Change file details`, `Manage cases` or `Manage permissions` in chat to open a focused review form. A completed account cannot reopen the onboarding route. Contact and case edits are available from those chat forms. Changing a recipient address invalidates existing permissions; it cannot move access to the new recipient. Expo Router owns navigation; React Native supplies the screens and file-picker/export controls. The project uses Expo SDK 58 and generated native projects. Do not edit generated `ios/` or `android/` files.
 
 ```sh
 cd mobile/client

@@ -8,6 +8,8 @@ import {
   StyleSheet,
   Platform,
   Linking,
+  KeyboardAvoidingView,
+  Keyboard,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -25,32 +27,51 @@ import { Button, C, Choices, Field, Toggle, styles as ui } from "./src/ui";
 import type { Workspace, Turn, FileCard, Channel, Choice } from "./src/types";
 import ChatScreen from "./src/ChatScreen";
 import SetupScreen from "./src/SetupScreen";
-import FilesScreen from "./src/FilesScreen";
+import FilesScreen, { ClassificationScreen } from "./src/FilesScreen";
+import { ChatIcon, SearchIcon, ReceivedIcon } from "./src/NavigationIcons";
 
-type Tab = "Chat" | "Files" | "Setup" | "Received" | "Account";
+type Tab = "Chat" | "Search" | "Setup" | "Received" | "Account" | "Manage";
+type Management = {
+  section: "files" | "people" | "permissions" | "classify";
+  matter_id?: string;
+  contact_id?: string;
+};
+type Frame = {
+  body: React.ReactNode;
+  header?: React.ReactNode;
+  footer?: React.ReactNode;
+};
 const RouteContent = React.createContext<React.ReactNode>(null);
 export function ClientRoute() {
   return React.useContext(RouteContent);
 }
 const paths = {
   Chat: "/",
-  Files: "/files",
+  Search: "/files",
   Setup: "/setup",
   Received: "/received",
   Account: "/account",
+  Manage: "/manage",
 } as const;
-function useClientContent() {
+function useClientContent(): Frame {
   const router = useRouter();
   const pathname = usePathname();
   const tab: Tab =
     (Object.keys(paths) as Tab[]).find((name) => paths[name] === pathname) ??
     "Chat";
-  const setTab = (name: Tab) => router.replace(paths[name]);
+  const setTab = useCallback(
+    (name: Tab) => router.replace(paths[name]),
+    [router],
+  );
   const [token, setToken] = useState<string | null>(null),
     [ready, setReady] = useState(false),
     [state, setState] = useState<Workspace | null>(null),
     [turns, setTurns] = useState<Turn[]>([]),
     [received, setReceived] = useState<FileCard[]>([]);
+  const [query, setQuery] = useState("");
+  const [management, setManagement] = useState<Management>({
+    section: "files",
+  });
   const [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),
     [name, setName] = useState(""),
@@ -78,6 +99,8 @@ function useClientContent() {
       setState(null);
       setTurns([]);
       setReceived([]);
+      setQuery("");
+      setCredentials([]);
       setAgentSecret("");
     }
   }
@@ -124,6 +147,24 @@ function useClientContent() {
   useEffect(() => {
     if (token) refresh(token).catch((e) => setError(e.message));
   }, [token, refresh]);
+  const onboarded = state?.user.onboarding_complete;
+  useEffect(() => {
+    if (onboarded === undefined) return;
+    if (!onboarded && tab !== "Setup" && tab !== "Account") setTab("Setup");
+    if (onboarded && tab === "Setup") setTab("Chat");
+  }, [onboarded, tab, setTab]);
+  function navigate(destination: Tab) {
+    Keyboard.dismiss();
+    setError("");
+    setAgentSecret("");
+    setTab(destination);
+    if (destination === "Received" || destination === "Account")
+      refresh().catch((e) => setError(e.message));
+  }
+  function openManagement(action: Management) {
+    setManagement(action);
+    navigate("Manage");
+  }
   async function login() {
     if (busy) return;
     setBusy(true);
@@ -176,142 +217,168 @@ function useClientContent() {
     await refresh();
   }
   if (!ready)
-    return (
-      <View style={s.loading}>
-        <ActivityIndicator color={C.accent} />
-      </View>
-    );
+    return {
+      body: (
+        <View style={s.loading}>
+          <ActivityIndicator color={C.accent} />
+        </View>
+      ),
+    };
   if (!token)
-    return (
-      <ScrollView
-        contentContainerStyle={[
-          ui.body,
-          { paddingTop: 44, maxWidth: 500, width: "100%", alignSelf: "center" },
-        ]}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={s.brand}>
-          fyde<Text style={{ color: C.accent }}>.</Text>
-        </Text>
-        <Text style={ui.eyebrow}>FILES, A CONVERSATION AWAY</Text>
-        <Text style={ui.heading}>
-          {signup
-            ? "Make room for\nyour important files."
-            : "Your files are\nright here."}
-        </Text>
-        <Text style={ui.sub}>
-          {signup
-            ? "Start privately. Set up your files and relationships after creating your account."
-            : "Sign in to chat with your files and receive documents."}
-        </Text>
-        {!!error && (
-          <Text style={ui.error} accessibilityRole="alert">
-            {error}
-          </Text>
-        )}
-        {signup && (
-          <Field label="Your name" value={name} onChangeText={setName} />
-        )}
-        <Field
-          label="Email address"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          autoComplete="email"
-        />
-        <Field
-          label="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoComplete={signup ? "new-password" : "current-password"}
-        />
-        <Button
-          title={
-            busy ? "Connecting…" : signup ? "Create account →" : "Sign in →"
-          }
-          disabled={busy || !email || !password || (signup && !name)}
-          onPress={login}
-        />
-        <Button
-          title={
-            signup
-              ? "Already have an account? Sign in"
-              : "Create a free account"
-          }
-          secondary
-          onPress={() => {
-            setSignup(!signup);
-            setError("");
-          }}
-        />
-        <Text style={ui.fine}>
-          Server: {API_ROOT}
-          {"\n"}Native sessions use device secure storage. Web preview sessions
-          stay in memory.
-        </Text>
-      </ScrollView>
-    );
-  if (!state)
-    return (
-      <View style={s.loading}>
-        <ActivityIndicator color={C.accent} />
-        {!!error && <Text style={ui.error}>{error}</Text>}
-        <Button
-          title="Retry connection"
-          secondary
-          onPress={() => refresh().catch((e) => setError(e.message))}
-        />
-        <Button title="Sign out" secondary onPress={endSession} />
-      </View>
-    );
-  return (
-    <View style={{ flex: 1 }}>
-      <View style={s.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Open chat"
-          onPress={() => setTab("Chat")}
+    return {
+      body: (
+        <ScrollView
+          contentContainerStyle={[
+            ui.body,
+            {
+              paddingTop: 44,
+              maxWidth: 500,
+              width: "100%",
+              alignSelf: "center",
+            },
+          ]}
+          keyboardShouldPersistTaps="handled"
         >
           <Text style={s.brand}>
             fyde<Text style={{ color: C.accent }}>.</Text>
           </Text>
-        </Pressable>
-        <Text style={s.section}>
-          {tab === "Chat" ? "Your private file assistant" : tab}
-        </Text>
-        <Pressable
-          onPress={() => refresh().catch((e) => setError(e.message))}
-          accessibilityRole="button"
-          accessibilityLabel="Refresh account"
-          style={s.refresh}
-        >
-          <Text style={{ fontSize: 22, color: C.ink }}>↻</Text>
-        </Pressable>
-      </View>
-      {state.user.data_mode === "fixture" && (
-        <View style={s.banner}>
-          <Text style={s.bannerText}>
-            Local fixture account · no live delivery claimed
+          <Text style={ui.eyebrow}>FILES, A CONVERSATION AWAY</Text>
+          <Text style={ui.heading}>
+            {signup
+              ? "Make room for\nyour important files."
+              : "Your files are\nright here."}
           </Text>
-        </View>
-      )}
-      {!state.user.email_verified && (
-        <Pressable onPress={() => setTab("Account")} style={s.verify}>
+          <Text style={ui.sub}>
+            {signup
+              ? "Start privately. Set up your files and relationships after creating your account."
+              : "Sign in to chat with your files and receive documents."}
+          </Text>
+          {!!error && (
+            <Text style={ui.error} accessibilityRole="alert">
+              {error}
+            </Text>
+          )}
+          {signup && (
+            <Field label="Your name" value={name} onChangeText={setName} />
+          )}
+          <Field
+            label="Email address"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoComplete="email"
+          />
+          <Field
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoComplete={signup ? "new-password" : "current-password"}
+          />
+          <Button
+            title={
+              busy ? "Connecting…" : signup ? "Create account →" : "Sign in →"
+            }
+            disabled={busy || !email || !password || (signup && !name)}
+            onPress={login}
+          />
+          <Button
+            title={
+              signup
+                ? "Already have an account? Sign in"
+                : "Create a free account"
+            }
+            secondary
+            onPress={() => {
+              setSignup(!signup);
+              setError("");
+            }}
+          />
           <Text style={ui.fine}>
-            Verify your email before sharing. Open Account to check verification
-            →
+            Server: {API_ROOT}
+            {"\n"}Native sessions use device secure storage. Web preview
+            sessions stay in memory.
           </Text>
-        </Pressable>
-      )}
-      {tab === "Chat" ? (
+        </ScrollView>
+      ),
+    };
+  if (!state)
+    return {
+      body: (
+        <View style={s.loading}>
+          <ActivityIndicator color={C.accent} />
+          {!!error && <Text style={ui.error}>{error}</Text>}
+          <Button
+            title="Retry connection"
+            secondary
+            onPress={() => refresh().catch((e) => setError(e.message))}
+          />
+          <Button title="Sign out" secondary onPress={endSession} />
+        </View>
+      ),
+    };
+  return {
+    header: (
+      <>
+        <View style={s.header}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open chat"
+            onPress={() =>
+              navigate(state.user.onboarding_complete ? "Chat" : "Setup")
+            }
+          >
+            <Text style={s.brand}>
+              fyde<Text style={{ color: C.accent }}>.</Text>
+            </Text>
+          </Pressable>
+          <Text style={s.section}>
+            {tab === "Chat"
+              ? "Your private file assistant"
+              : tab === "Search"
+                ? "Find your files"
+                : tab === "Manage"
+                  ? "Workspace changes"
+                  : tab === "Setup"
+                    ? "Welcome to Fyde"
+                    : tab}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Profile and settings"
+            onPress={() => navigate("Account")}
+            style={s.avatar}
+          >
+            <Text style={s.initial}>
+              {(state.user.name || state.user.email).slice(0, 1).toUpperCase()}
+            </Text>
+          </Pressable>
+        </View>
+        {state.user.data_mode === "fixture" && (
+          <View style={s.banner}>
+            <Text style={s.bannerText}>
+              Local fixture account · no live delivery claimed
+            </Text>
+          </View>
+        )}
+        {!state.user.email_verified && (
+          <Pressable onPress={() => navigate("Account")} style={s.verify}>
+            <Text style={ui.fine}>
+              Verify your email before sharing. Open Account →
+            </Text>
+          </Pressable>
+        )}
+      </>
+    ),
+    body:
+      tab === "Chat" ? (
         <ChatScreen
           turns={turns}
           defaultChannel={state.user.default_channel}
           contextEnabled={state.user.chat_context_enabled ?? true}
           send={send}
-          openSetup={() => setTab("Setup")}
+          openManagement={openManagement}
           download={getFile}
         />
       ) : tab === "Setup" ? (
@@ -320,18 +387,39 @@ function useClientContent() {
           mutate={mutate}
           finish={() => setTab("Chat")}
         />
-      ) : tab === "Files" ? (
+      ) : tab === "Manage" ? (
+        management.section === "classify" ? (
+          <ClassificationScreen
+            state={state}
+            download={getFile}
+            finish={() => navigate("Chat")}
+            save={async (file, matter, type, sensitive) => {
+              await mutate(`/api/v1/documents/${file.document_id}/classify/`, {
+                matter_id: matter || null,
+                document_type: type,
+                sensitive,
+              });
+            }}
+          />
+        ) : (
+          <SetupScreen
+            key={JSON.stringify(management)}
+            state={state}
+            mutate={mutate}
+            onboarding={false}
+            initialStep={management.section}
+            initialMatter={management.matter_id}
+            initialContact={management.contact_id}
+            finish={() => navigate("Chat")}
+          />
+        )
+      ) : tab === "Search" ? (
         <FilesScreen
           state={state}
+          token={token}
+          query={query}
+          onQuery={setQuery}
           download={getFile}
-          setup={() => setTab("Setup")}
-          save={async (file, matter, type, sensitive) => {
-            await mutate(`/api/v1/documents/${file.document_id}/classify/`, {
-              matter_id: matter || null,
-              document_type: type,
-              sensitive,
-            });
-          }}
         />
       ) : tab === "Received" ? (
         <ScrollView contentContainerStyle={ui.body}>
@@ -370,6 +458,22 @@ function useClientContent() {
       ) : (
         <ScrollView contentContainerStyle={ui.body}>
           <Text style={ui.heading}>Your account.</Text>
+          <Button
+            title="Refresh account"
+            secondary
+            onPress={() => refresh().catch((e) => setError(e.message))}
+          />
+          <Button
+            title={
+              state.user.onboarding_complete
+                ? "Back to chat"
+                : "Back to onboarding"
+            }
+            secondary
+            onPress={() =>
+              navigate(state.user.onboarding_complete ? "Chat" : "Setup")
+            }
+          />
           <Text style={ui.sub}>
             {state.user.name}
             {"\n"}
@@ -524,49 +628,79 @@ function useClientContent() {
             and marketing agents. They cannot read this chat or your documents.
           </Text>
         </ScrollView>
-      )}
-      <View style={s.tabs}>
-        {(["Chat", "Files", "Setup", "Received", "Account"] as Tab[]).map(
-          (item) => (
-            <Pressable
-              accessibilityRole="tab"
-              accessibilityState={{ selected: tab === item }}
-              accessibilityLabel={item}
-              onPress={() => {
-                setTab(item);
-                setError("");
-                setAgentSecret("");
-                if (item === "Received")
-                  refresh().catch((e) => setError(e.message));
-              }}
-              key={item}
-              style={[s.tab, tab === item && { backgroundColor: C.warm }]}
+      ),
+    footer:
+      state.user.onboarding_complete && tab !== "Manage" ? (
+        <View style={s.tabs}>
+          <Pressable
+            accessibilityRole="tab"
+            accessibilityLabel="Search"
+            accessibilityState={{ selected: tab === "Search" }}
+            onPress={() => navigate("Search")}
+            style={s.searchTab}
+          >
+            <View
+              style={[
+                s.chatIcon,
+                { backgroundColor: tab === "Search" ? C.warm : "transparent" },
+              ]}
             >
-              <Text
-                style={{
-                  fontSize: 11,
-                  color: tab === item ? C.accent : C.muted,
-                  fontWeight: tab === item ? "600" : "400",
-                }}
-              >
-                {item}
-              </Text>
-            </Pressable>
-          ),
-        )}
-      </View>
-    </View>
-  );
+              <SearchIcon color={tab === "Search" ? C.accent : C.muted} />
+            </View>
+          </Pressable>
+          <Pressable
+            accessibilityRole="tab"
+            accessibilityLabel="Chat"
+            accessibilityState={{ selected: tab === "Chat" }}
+            onPress={() => navigate("Chat")}
+            style={s.chatTab}
+          >
+            <View
+              style={[
+                s.chatIcon,
+                tab === "Chat" && { backgroundColor: C.accent },
+              ]}
+            >
+              <ChatIcon color={tab === "Chat" ? C.paper : C.ink} />
+            </View>
+          </Pressable>
+          <Pressable
+            accessibilityRole="tab"
+            accessibilityLabel="Received"
+            accessibilityState={{ selected: tab === "Received" }}
+            onPress={() => navigate("Received")}
+            style={s.receivedTab}
+          >
+            <ReceivedIcon color={tab === "Received" ? C.accent : C.muted} />
+            <Text
+              style={[s.tabLabel, tab === "Received" && { color: C.accent }]}
+            >
+              Received
+            </Text>
+          </Pressable>
+        </View>
+      ) : null,
+  };
 }
+
 export default function App() {
   const content = useClientContent();
   return (
     <SafeAreaProvider>
       <SafeAreaView style={ui.screen} edges={["top", "bottom"]}>
         <StatusBar style="dark" />
-        <RouteContent.Provider value={content}>
-          <Slot />
-        </RouteContent.Provider>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          {content.header}
+          <RouteContent.Provider value={content.body}>
+            <View style={{ flex: 1 }}>
+              <Slot />
+            </View>
+          </RouteContent.Provider>
+          {content.footer}
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -583,12 +717,17 @@ const s = StyleSheet.create({
   },
   brand: { fontSize: 30, fontWeight: "700", color: C.ink, letterSpacing: -1.4 },
   section: { flex: 1, color: C.muted, fontSize: 11 },
-  refresh: {
+  avatar: {
     width: 44,
     height: 44,
+    borderRadius: 22,
+    backgroundColor: C.soft,
+    borderWidth: 1,
+    borderColor: C.line,
     alignItems: "center",
     justifyContent: "center",
   },
+  initial: { fontSize: 16, fontWeight: "600", color: C.ink },
   banner: { backgroundColor: C.warm, padding: 9, alignItems: "center" },
   bannerText: { fontSize: 10, color: "#6d4b39" },
   verify: {
@@ -598,20 +737,42 @@ const s = StyleSheet.create({
   },
   tabs: {
     flexDirection: "row",
-    padding: 9,
-    gap: 4,
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 10,
     borderTopWidth: 1,
     borderTopColor: C.line,
     backgroundColor: C.bg,
   },
-  tab: {
+  searchTab: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 9,
-    minHeight: 45,
-    paddingVertical: 12,
+    minHeight: 52,
   },
+  chatTab: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 52,
+  },
+  chatIcon: {
+    width: 50,
+    height: 46,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: C.soft,
+  },
+  receivedTab: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 52,
+    gap: 4,
+  },
+  tabLabel: { color: C.muted, fontSize: 11 },
   loading: {
     flex: 1,
     justifyContent: "center",

@@ -189,8 +189,62 @@ def converse(owner, message, operation_id, *, channel=None, choice=None):
     for _ in range(2):
         text = re.sub(r"^(?:(?:can|could|would) you\s+|please\s+)", "", text, flags=re.I)
     reply = "I can find a file, send it to a contact, or request documents under a case permission. Try ‘Find my passport’, ‘Send it to my lawyer’, or ‘Request passport for Immigration case’."
-    # A reviewed setup card is the one-time authority decision; requests under it need no further approval.
-    if re.match(r"^(allow|let|authorize)\b", text, re.I) and re.search(r"request|automatic", text, re.I):
+    # Chat opens a specific customer form. These cards never change files or grant access by themselves.
+    action = None
+    if re.match(
+        r"^(?:add|upload|import)\s+(?:(?:some|more|my|new)\s+)?(?:files?|documents?)\b", text, re.I
+    ) or re.fullmatch(r"(?:create|add)\s+(?:a\s+)?(?:case|project)[.!]?", text, re.I):
+        action = (
+            "files",
+            "Add files →",
+            "Choose the files to import and the case they belong to. They remain private until your sharing rules allow a transfer.",
+        )
+    elif re.fullmatch(
+        r"(?:add|manage|edit|update)\s+(?:(?:a|my|new)\s+)?(?:contacts?|people|relationships?)[.!]?",
+        text,
+        re.I,
+    ):
+        action = (
+            "people",
+            "Manage contacts →",
+            "Add a contact and relationship here. A relationship label does not grant document access.",
+        )
+    elif re.fullmatch(
+        r"(?:manage|review|change|edit|update|show)\s+(?:my\s+)?(?:permissions|sharing|automatic sharing|case permissions)[.!]?",
+        text,
+        re.I,
+    ):
+        action = (
+            "permissions",
+            "Review sharing permissions →",
+            "Review the case, verified recipient and document scope. Changes to automatic sharing require your explicit approval.",
+        )
+    elif re.fullmatch(
+        r"(?:change|edit|update|classify|organize)\s+(?:my\s+)?(?:file details|files|documents|document details)[.!]?",
+        text,
+        re.I,
+    ):
+        action = (
+            "classify",
+            "Change file details →",
+            "Review each file’s case, type and sensitivity before saving. Case assignment can make it eligible under an active permission.",
+        )
+    if re.fullmatch(r"(?:manage|rename|edit|update)\s+(?:my\s+)?(?:cases?|projects?)[.!]?", text, re.I):
+        action = (
+            "files",
+            "Manage cases →",
+            "Create or rename a case here. Renaming keeps its assigned files and permissions.",
+        )
+    if action:
+        section, label, reply = action
+        result.update(
+            kind="workspace_action",
+            section=section,
+            action_label=label,
+            url=f"/app/setup/?step={'files' if section == 'classify' else section}",
+        )
+    # A reviewed permission is the one-time authority decision; matching requests need no further approval.
+    elif re.match(r"^(allow|let|authorize)\b", text, re.I) and re.search(r"request|automatic", text, re.I):
         contacts = [
             c
             for c in Contact.objects.filter(owner=owner)
@@ -208,7 +262,7 @@ def converse(owner, message, operation_id, *, channel=None, choice=None):
             matter_id=str(matters[0].pk) if len(matters) == 1 else "",
             url="/app/setup/?step=permissions",
         )
-        reply = "Set the case, verified contact and document scope once in setup. After you enable the permission, matching requests are fulfilled automatically without asking you again."
+        reply = "Review the case, verified contact and document scope once. After you enable the permission, matching requests are fulfilled automatically without asking you again."
     elif re.fullmatch(r".+?\s+is\s+my\s+.+?[.!]?", text, re.I):
         person, relationship = re.split(r"\s+is\s+my\s+", text, maxsplit=1, flags=re.I)
         matches = list(Contact.objects.filter(owner=owner, name__iexact=person.strip()))
@@ -218,9 +272,7 @@ def converse(owner, message, operation_id, *, channel=None, choice=None):
             contact.save(update_fields=["relationship"])
             reply = f"Saved {contact.name} as your {contact.relationship}. Their document access still follows the permissions you enable."
         else:
-            reply = (
-                "Add that person in setup, or use their exact contact name so I can save the relationship."
-            )
+            reply = "Say ‘Add a contact’ to add that person, or use their exact contact name so I can save the relationship."
     elif re.match(r"^(request|get|ask for)\b", text, re.I) or (choice and choice.get("policy_id")):
         policies = list(peer_policies(owner))
         if choice and choice.get("policy_id"):
@@ -249,7 +301,7 @@ def converse(owner, message, operation_id, *, channel=None, choice=None):
             reply = (
                 "Choose the case permission to use."
                 if policies
-                else "No active case permission is available for your verified account. The file owner can enable one in setup."
+                else "No active case permission is available for your verified account. The file owner can say ‘Manage permissions’ in chat to enable one."
             )
         else:
             request_text = recent.message if choice and choice.get("policy_id") and recent else text

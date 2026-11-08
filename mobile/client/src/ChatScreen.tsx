@@ -6,8 +6,6 @@ import {
   TextInput,
   Pressable,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
 } from "react-native";
 import * as Crypto from "expo-crypto";
@@ -24,7 +22,11 @@ type Props = {
     channel: Channel,
     choice?: Choice,
   ) => Promise<void>;
-  openSetup: () => void;
+  openManagement: (action: {
+    section: "files" | "people" | "permissions" | "classify";
+    matter_id?: string;
+    contact_id?: string;
+  }) => void;
   download: (file: FileCard) => Promise<void>;
 };
 export default function ChatScreen({
@@ -32,7 +34,7 @@ export default function ChatScreen({
   defaultChannel,
   contextEnabled,
   send,
-  openSetup,
+  openManagement,
   download,
 }: Props) {
   const [text, setText] = useState(""),
@@ -76,11 +78,7 @@ export default function ChatScreen({
   const choose = (turn: Turn, choice: Omit<Choice, "turn_id">, label: string) =>
     submit(label, { turn_id: turn.id, ...choice });
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
-    >
+    <View style={{ flex: 1 }}>
       <ScrollView
         ref={scroll}
         style={{ flex: 1 }}
@@ -99,12 +97,9 @@ export default function ChatScreen({
               Find a file, send it to someone you know, or request permitted
               case documents.
             </Text>
-            <Button
-              title="Set up files & relationships →"
-              secondary
-              onPress={openSetup}
-            />
+
             {[
+              "Add files",
               "Find my passport",
               "Send it to my lawyer",
               "Request passport for Immigration case",
@@ -208,9 +203,29 @@ export default function ChatScreen({
                 <Button
                   title="Review automatic sharing →"
                   secondary
-                  onPress={openSetup}
+                  onPress={() =>
+                    openManagement({
+                      section: "permissions",
+                      matter_id: turn.result.matter_id,
+                      contact_id: turn.result.contact_id,
+                    })
+                  }
                 />
               )}
+              {turn.result.kind === "workspace_action" &&
+                turn.result.section && (
+                  <Button
+                    title={turn.result.action_label || "Review changes →"}
+                    secondary
+                    onPress={() =>
+                      openManagement({
+                        section: turn.result.section!,
+                        matter_id: turn.result.matter_id,
+                        contact_id: turn.result.contact_id,
+                      })
+                    }
+                  />
+                )}
               {!!turn.result.remaining_versions?.length && (
                 <Button
                   title="Send next batch →"
@@ -274,7 +289,7 @@ export default function ChatScreen({
               : "Private chat · recent choices are off"}
         </Text>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 const s = StyleSheet.create({

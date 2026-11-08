@@ -423,3 +423,75 @@ class ChatAndCaseJourney(TestCase):
         token = CustomerToken.objects.get(token_hash=hashlib.sha256(key.encode()).hexdigest())
         self.post(f"/api/v1/credentials/{token.pk}/revoke/", {}, self.lawyer_key)
         self.assertEqual(self.request_files(key).status_code, 401)
+
+    def test_chat_management_cards_and_search_keep_owner_authority(self):
+        version = self.file(content=b"Synthetic indexed match: cedar tree.")
+        before_grants = StandingPolicy.objects.count()
+        for message, section in [
+            ("Add files", "files"),
+            ("Add a contact", "people"),
+            ("Manage permissions", "permissions"),
+            ("Change file details", "classify"),
+        ]:
+            response = self.post("/api/v1/chat/", {"message": message, "operation_id": str(uuid.uuid4())})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()["result"]["section"], section)
+            self.assertEqual(response.json()["result"]["kind"], "workspace_action")
+        self.assertEqual(StandingPolicy.objects.count(), before_grants)
+        self.assertEqual(Transfer.objects.count(), 0)
+        result = self.client.get(
+            "/api/v1/files/search/?q=cedar", HTTP_AUTHORIZATION=f"Bearer {self.owner_key}"
+        )
+        self.assertEqual([f["id"] for f in result.json()["files"]], [str(version.pk)])
+        other = self.client.get(
+            "/api/v1/files/search/?q=cedar", HTTP_AUTHORIZATION=f"Bearer {self.lawyer_key}"
+        )
+        self.assertEqual(other.json()["files"], [])
+        _, agent_key = issue_token(self.lawyer, kind="agent", policy=self.policy())
+        denied = self.client.get("/api/v1/files/search/?q=cedar", HTTP_AUTHORIZATION=f"Bearer {agent_key}")
+        self.assertEqual(denied.status_code, 403)
+
+    def test_chat_contact_and_case_edits_do_not_carry_authority_to_new_endpoints(self):
+        self.file()
+        permission = self.policy()
+        _, key = issue_token(self.lawyer, kind="agent", policy=permission)
+        response = self.post(
+            f"/api/v1/contacts/{self.contact.pk}/update/",
+            {"name": "Alex", "relationship": "Immigration lawyer", "aliases": "counsel"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.contact.refresh_from_db()
+        self.assertEqual(self.contact.endpoint_revision, permission.endpoint_revision)
+        self.assertEqual(
+            self.client.get("/api/agents/v1/permissions/", HTTP_AUTHORIZATION=f"Bearer {key}").status_code,
+            200,
+        )
+        renamed = self.post(f"/api/v1/matters/{self.matter.pk}/rename/", {"name": "Work immigration"})
+        self.assertEqual(renamed.status_code, 200)
+        permission.refresh_from_db()
+        self.assertEqual(permission.matter_id, self.matter.pk)
+        self.assertEqual(StandingPolicy.objects.count(), 1)
+        self.assertEqual(
+            self.post(
+                f"/api/v1/contacts/{self.contact.pk}/update/", {"name": "Wrong owner"}, key=self.lawyer_key
+            ).status_code,
+            404,
+        )
+        self.assertEqual(
+            self.post(f"/api/v1/matters/{self.matter.pk}/rename/", {"name": "Denied"}, key=key).status_code,
+            403,
+        )
+        changed = self.post(
+            f"/api/v1/contacts/{self.contact.pk}/update/", {"email": "replacement@example.test"}
+        )
+        self.assertEqual(changed.status_code, 200)
+        self.contact.refresh_from_db()
+        self.assertGreater(self.contact.endpoint_revision, permission.endpoint_revision)
+        self.assertIsNone(self.contact.verified_at)
+        self.assertEqual(
+            self.client.get("/api/agents/v1/permissions/", HTTP_AUTHORIZATION=f"Bearer {key}").status_code,
+            403,
+        )
+        state = self.client.get("/api/v1/state/", HTTP_AUTHORIZATION=f"Bearer {self.owner_key}").json()
+        self.assertTrue(state["policies"][0]["recipient_changed"])
+        self.assertEqual(Transfer.objects.count(), 0)

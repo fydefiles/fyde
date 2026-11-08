@@ -31,6 +31,7 @@
       "expo-router",
       "expo-web-browser"
     ],
-    "scheme": "fyde"
+    "scheme": "fyde",
+    "extra": { "eas": { "projectId": "8e1db46f-73fa-4e4e-91ef-3df0e490b30d" } }
   }
 }

@@ -1,0 +1,45 @@
+{
+  "mode": "protected GitHub dev merge and retained local fixture verification",
+  "recorded_at_utc": "2026-11-08T03:22:07.089171+00:00",
+  "implementation_pr": "https://github.com/fydefiles/fyde/pull/7",
+  "feature_head": "08dcffe1ba5748f1b354881efabe191302264278",
+  "merge_sha": "a70c7747f083d2368406083082594d5f35609289",
+  "merge_state": "MERGED",
+  "required_head_checks": [
+    "integration",
+    "release-boundary"
+  ],
+  "additional_head_check": "mobile",
+  "post_merge_verification": "https://github.com/fydefiles/fyde/actions/runs/42442265096",
+  "post_merge_verification_result": "success",
+  "hosted_deployment": "https://github.com/fydefiles/fyde/actions/runs/42442355586",
+  "hosted_deployment_result": "skipped; DEVELOPMENT_DEPLOY_ENABLED is not true",
+  "hosted_deployment_claimed": false,
+  "local_health": {
+    "8000": {
+      "status": "ok",
+      "service": "fyde",
+      "revision": "a70c7747f083d2368406083082594d5f35609289"
+    },
+    "8001": {
+      "status": "ok",
+      "service": "fyde",
+      "revision": "a70c7747f083d2368406083082594d5f35609289"
+    }
+  },
+  "primary_unrelated_gitignore": "preserved; SHA-256 matches pre-upgrade snapshot",
+  "primary_database_backups": "var/pre-native-navigation-upgrade/20261108-031907/default.sqlite3 and company.sqlite3",
+  "schema_migrations_added": false,
+  "existing_primary_data": "preserved; native QA uses its separate fixture database",
+  "native_preview": "Retained local API 8001, customer index/delivery worker, Metro 8081 and booted iPhone 17 Pro simulator; owner demo signed in",
+  "fixture_source_http_server_8127": "stopped after import",
+  "native_package": "var/mobile-builds/Fyde-simulator-native-chat.zip in retained original checkout",
+  "native_demo_credentials": "var/native-demo-login.txt in retained implementation checkout; ignored synthetic fixtures only",
+  "worktree_retirement": "Protected primary checkout retained; no forced removal. Native preview still uses it.",
+  "production_promotion": "not requested; main untouched",
+  "remaining": [
+    "Live provider authorizations and genuine attendee feedback remain as recorded in product.md",
+    "Physical-device QA, Android native packaging, HTTPS hosting and store distribution need the recorded founder actions",
+    "Repository now resolves to fydefiles/fyde; review the old GHCR namespace in deployment configuration before activating hosted deployment"
+  ]
+}

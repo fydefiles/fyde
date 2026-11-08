@@ -66,7 +66,7 @@ The database-backed journeys protect disclosure, verification, permissions, mete
 
 ## Deployment
 
-The [production website and mobile API](docs/production.md) use `https://fyde.mehmetuzgoren.workers.dev`. Native preview and release profiles select that origin. Production data and credentials are separate from development.
+The [production website and mobile API](docs/production.md) use `https://fyde.izbirakin.com`. Native preview and release profiles select that origin. Production data and credentials are separate from development.
 
 The customer hosting path is [Cloudflare plus Neon Functions](docs/cloudflare-neon.md). Its development deployment workflow follows a successful verified `dev` push and checks the hosted Git SHA. Production promotion requires a separate release request.
 

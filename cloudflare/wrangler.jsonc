@@ -38,6 +38,8 @@
       "name": "fyde",
       "workers_dev": true,
       "preview_urls": false,
+      // fyde.izbirakin.com is attached in Cloudflare. Keep domain management
+      // separate so the deployment token needs access only to this Worker.
       "assets": {
         "directory": "../mobile/client/dist",
         "binding": "ASSETS",

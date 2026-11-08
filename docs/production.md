@@ -1,6 +1,8 @@
 # Production hosting and the mobile API
 
-The production website and mobile API share `https://fyde.mehmetuzgoren.workers.dev`. Cloudflare serves the web app and forwards authenticated requests to Neon Functions. Set the mobile client's `EXPO_PUBLIC_API_URL` to that origin, without `/api/v1` or a trailing path. The customer endpoints start at `/api/v1/`; recipient agents use `/api/agents/v1/`. Native clients sign in and send their device token in `Authorization: Bearer …`. They never receive the private proxy key or database/storage credentials.
+The production website and mobile API share `https://fyde.izbirakin.com`. Cloudflare serves the web app and forwards authenticated requests to Neon Functions. Set the mobile client's `EXPO_PUBLIC_API_URL` to that origin, without `/api/v1` or a trailing path. The customer endpoints start at `/api/v1/`; recipient agents use `/api/agents/v1/`. Native clients sign in and send their device token in `Authorization: Bearer …`. They never receive the private proxy key or database/storage credentials.
+
+The Cloudflare custom domain uses managed DNS and TLS and is attached to the production `fyde` Worker in Cloudflare. Domain management stays separate from the Worker-only deployment token; releases preserve the existing binding. `https://fyde.mehmetuzgoren.workers.dev` remains an alias for the same app and backend. Both exact origins are allowed by the API and Neon Auth. Browser sessions are specific to each hostname; sign in again when switching between them.
 
 Production has its own Neon project, `fyde-prod` (`patient-cherry-39934916`, branch `br-dry-dust-bez1dfpd`, AWS Ohio), private `uploads` bucket, Managed Better Auth service and runtime credentials. It starts empty. Development accounts and files stay in `fyde-dev`. Create and verify a production account through the website before signing into an older mobile build that lacks the verification-code screen.
 
@@ -9,7 +11,7 @@ Production has its own Neon project, `fyde-prod` (`patient-cherry-39934916`, bra
 The checked-in native release fallback and the EAS `preview` and `production` profiles use the production origin. A local device build can select it with an ignored `mobile/client/.env.local`:
 
 ```dotenv
-EXPO_PUBLIC_API_URL=https://fyde.mehmetuzgoren.workers.dev
+EXPO_PUBLIC_API_URL=https://fyde.izbirakin.com
 ```
 
 Reload the app after changing public build configuration. A previously installed release needs a new bundle/build to adopt a changed origin; server deployment alone does not change an installed binary. Web builds use the current page origin. `EXPO_PUBLIC_*` settings are public and must contain no secrets. This hosting release does not submit an app to either store or activate a paid EAS build.

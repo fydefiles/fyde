@@ -1,0 +1,27 @@
+{
+  "mode": "fixture",
+  "transport": "real HTTP via separate Docker requester",
+  "owner_session_provided": false,
+  "owner_credential_provided": false,
+  "mounts": [
+    "read-only requester script",
+    "received-file output only"
+  ],
+  "customer_database_mounted": false,
+  "customer_private_storage_mounted": false,
+  "credentials": "one recipient-scoped case credential only",
+  "client_exit_code": 0,
+  "files": [
+    {
+      "file": "2c026af3-a2bf-4e71-b952-22432a545af1-synthetic-passport.txt",
+      "sha256": "9e5f9729411b05990776a991b836d7e4373e7018243b0e471c79a74ab9718bc2"
+    },
+    {
+      "file": "6cbd25af-b912-4e2b-8771-a88f112c0c5e-synthetic-immigration-note.txt",
+      "sha256": "beeccc813836ec6a9313dca31f7955f1f6baed4f3cf312c295eae733b9cfd989"
+    }
+  ],
+  "policy_id": "e6bc9cdd-35d2-4977-bc12-955710fdd36a",
+  "request_operation": "127ae35f-821b-4a73-98c7-da08cb6d7760",
+  "owner_approvals_during_requests": 0
+}

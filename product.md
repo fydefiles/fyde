@@ -83,7 +83,8 @@ The growth agent researches a useful adjacent topic, verifies factual claims, re
 
 ### P0 — A usable, accountable product and one autonomous business loop
 
-- Responsive customer application using the existing stack; a web/PWA surface is the fallback if no native client already exists.
+- Chat-first web application using the existing stack and a native iOS/Android client, with shared private conversation and trusted customer APIs.
+- Initial multi-file import, explicit case/document-type assignment, contact relationships and reviewed case-wide standing permissions. Recipient agents can request permitted files without per-request owner approval.
 - Authentication and strict per-user isolation.
 - Private uploaded-file repository, metadata extraction, searchable contents, previews, tags, and explicit versions.
 - Contacts, endpoint verification, preferred delivery channel, and contextual recipient resolution.
@@ -608,6 +609,18 @@ The original local app at `http://127.0.0.1:8000` was upgraded to the merged rev
 
 The implementation checkout has no uncommitted feature work after the dev merge. Codex previously rejected recoverable archival for this exact checkout with “The task’s primary checkout cannot be removed.” That workspace protection still applies; the checkout was retained, with no shell deletion or protection bypass. The existing independent company fixture worktree remains untouched. Optional SMS activation is also listed as F14 in the actual founder-action dashboard, with no credentials assigned to business agents.
 
+### Direction update: chat, mobile and delegated case requests
+
+Founder direction: build a mobile app as well as the web app, make conversation the primary action on both, and guide users through file import, contact relationships and standing permissions. A verified lawyer’s agent must be able to request documents for an authorized immigration case and receive them without another owner approval.
+
+Inspection: the established stack is Django 5.2 with private storage and separate customer/company databases. The current UI has a bounded command field and exact-version grants. It has no mobile client, conversation history, bulk onboarding, case classification or case-wide recipient-agent protocol. All previously verified native/email/SMS delivery behavior must remain working.
+
+Status: `implemented; local verification complete for backend, web and the React Native web client; final native build and protected dev delivery in progress`. Django serves shared private chat/setup APIs, case permissions and the scoped customer-agent protocol. Both clients make chat primary. Setup imports multiple files, assigns cases/types, labels relationships and reviews standing permissions. Owners explicitly choose future-file/version and sensitive-file access. Every release still uses an exact-version grant, verified recipient, endpoint revision, expiry, quota and download checks. Agent credentials cover one received case permission and cannot change authority or read unrelated files. Existing web tools remain at `/app/workspace/`.
+
+Evidence: all 49 database journeys passed on PostgreSQL, including the previous delivery/company checks and real last-quota-unit concurrency. Eight new integration journeys protect mobile setup, quarantine and private-file boundaries, case snapshots/future scope/sensitivity, owner-session-free fulfillment, exact-byte downloads, pagination/quota/idempotency, chat follow-ups/ambiguity and CSRF/token isolation. A real browser imported two synthetic files, set up a Lawyer relationship and case permission, then completed “Find my passport” → “Send it to my lawyer.” The recipient used the React Native web client to request the passport automatically and download matching original bytes. A separate Docker requester downloaded and SHA-256 verified both permitted files over actual HTTP, using only one scoped case credential. It had no owner credential, customer database or private-storage mount and required zero new owner approvals. Evidence: `artifacts/evidence/case-agent-workflow.json`; runnable client: `examples/request_case_documents.py`; guide: `docs/mobile-and-agents.md`.
+
+TypeScript, Expo dependency checks and iOS/Android/web production bundles pass. npm reports zero advisories with patched build-tool overrides. An unsigned native iOS simulator binary compiled successfully. Expo Router navigation is being incorporated into the final native build; Apple’s missing simulator runtime is downloading for a direct native inspection. Android native packaging, physical-device QA, signing/store distribution and hosted/live-account checks remain unverified. F15 records distribution actions; public HTTPS/API hosting requires F01/F10. All examples use labeled fixture accounts and synthetic files. No external model or paid provider action is used by the bounded assistant. Broader company and live-provider blockers remain as recorded above.
+
 ### Product and delivery
 
 - [x] P01 — Inspect existing implementation, preserve working stack, and record architecture decisions.
@@ -668,6 +681,7 @@ These are external authority/account decisions, not requests to describe the cod
 | F02 | Authorize Naïve and other paid providers; set spending caps | Secret references, limits, successful scoped test | blocked |
 | F03 | Authorize sending domain/mailbox and required email configuration | Verified sender and successful real send | blocked |
 | F14 | Optional: authorize Twilio SMS sender and destination registrations; set segment-cost, daily USD and message-count caps | Set SMS_ADAPTER=twilio, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, SMS_FROM, HTTPS SITE_URL, SMS_UNIT_COST_USD, SMS_DAILY_BUDGET_USD and SMS_DAILY_LIMIT in the customer worker secret store; complete a consent-safe verification/send/download smoke | blocked; native delivery is independent |
+| F15 | Confirm owned mobile application identifiers and authorize signing/distribution when ready | Set reachable HTTPS EXPO_PUBLIC_API_URL; supply founder-owned Apple/Google signing and distribution accounts for a signed device/store build. Local iOS simulator and platform bundles are separate evidence; Android native packaging needs the Android SDK | blocked for distribution; source and local builds continue |
 | F04 | Create/identify product subreddit and obtain approved commercial API use | Approved use case and scoped credentials; own form works meanwhile | blocked |
 | F05 | Connect the Instagram professional account and publishing permissions | Valid account authorization and successful permitted publish | blocked |
 | F06 | Activate payment account and approve live billing | Operator activation; verified prices, terms, webhook, portal | blocked |

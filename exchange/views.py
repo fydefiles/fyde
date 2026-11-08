@@ -91,7 +91,7 @@ def signup(request):
                     owner=user, kind="signup", campaign=campaign["id"], data_mode=user.data_mode
                 )
             messages.success(request, "Your account is ready. Verify your email before sending a file.")
-            return redirect("dashboard")
+            return redirect("onboarding")
         except (IntegrityError, PolicyError) as error:
             form.add_error(
                 None, str(error) if isinstance(error, PolicyError) else "This account could not be created."

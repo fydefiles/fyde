@@ -4,6 +4,17 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
 
+DOCUMENT_TYPES = [
+    ("general", "General"),
+    ("passport", "Passport"),
+    ("visa", "Visa / immigration"),
+    ("identity", "Identity"),
+    ("financial", "Financial"),
+    ("legal", "Legal"),
+    ("correspondence", "Correspondence"),
+    ("other", "Other"),
+]
+
 DELIVERY_CHANNELS = [("in_app", "Fyde"), ("email", "Email"), ("phone", "Phone (SMS)")]
 
 
@@ -13,6 +24,8 @@ class User(AbstractUser):
     sharing_paused = models.BooleanField(default=False)
     data_mode = models.CharField(max_length=12, default="live")
     notifications_enabled = models.BooleanField(default=True)
+    onboarding_completed_at = models.DateTimeField(null=True, blank=True)
+    chat_context_enabled = models.BooleanField(default=True)
     default_delivery_channel = models.CharField(max_length=20, choices=DELIVERY_CHANNELS, default="in_app")
     phone = models.CharField(max_length=16, blank=True)
     phone_verified_at = models.DateTimeField(null=True, blank=True)
@@ -42,6 +55,7 @@ class Contact(Record):
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=16, blank=True)
     phone_verified_at = models.DateTimeField(null=True, blank=True)
+    relationship = models.CharField(max_length=80, blank=True)
     aliases = models.CharField(max_length=250, blank=True)
     endpoint_revision = models.PositiveIntegerField(default=1)
     verified_at = models.DateTimeField(null=True, blank=True)
@@ -66,6 +80,10 @@ class Document(Record):
     title = models.CharField(max_length=180)
     tags = models.CharField(max_length=250, blank=True)
     sensitive = models.BooleanField(default=False)
+    matter = models.ForeignKey(
+        "Matter", null=True, blank=True, on_delete=models.PROTECT, related_name="documents"
+    )
+    document_type = models.CharField(max_length=30, choices=DOCUMENT_TYPES, default="general")
     current_version = models.ForeignKey(
         "FileVersion", null=True, blank=True, on_delete=models.SET_NULL, related_name="current_for"
     )
@@ -91,6 +109,10 @@ class FileVersion(Record):
 
 
 class Grant(Record):
+    standing_policy = models.ForeignKey(
+        "StandingPolicy", null=True, blank=True, on_delete=models.PROTECT, related_name="grants"
+    )
+    policy_revision = models.PositiveIntegerField(default=0)
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
     contact = models.ForeignKey(Contact, on_delete=models.CASCADE)
     version = models.ForeignKey(FileVersion, on_delete=models.CASCADE)
@@ -145,7 +167,7 @@ class Transfer(Record):
     recipient_email = models.EmailField(default="")
     recipient_phone = models.CharField(max_length=16, blank=True)
     channel = models.CharField(max_length=20, choices=DELIVERY_CHANNELS, default="in_app")
-    binding_version = models.PositiveSmallIntegerField(default=2)
+    binding_version = models.PositiveSmallIntegerField(default=3)
     endpoint_revision_snapshot = models.PositiveIntegerField(default=1)
     binding = models.CharField(max_length=64)
     status = models.CharField(max_length=40, default="queued")
@@ -302,3 +324,89 @@ class CheckoutAttempt(Record):
     url = models.URLField(max_length=1500, blank=True)
     status = models.CharField(max_length=30, default="preparing")
     data_mode = models.CharField(max_length=12)
+
+
+class Matter(Record):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    name = models.CharField(max_length=120)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["owner", "name"], name="owner_matter_name")]
+
+
+class StandingPolicy(Record):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="case_permissions")
+    contact = models.ForeignKey(Contact, on_delete=models.PROTECT)
+    recipient = models.ForeignKey(User, on_delete=models.PROTECT, related_name="received_case_permissions")
+    matter = models.ForeignKey(Matter, on_delete=models.PROTECT)
+    operation_id = models.CharField(max_length=100)
+    endpoint_revision = models.PositiveIntegerField()
+    identity_kind = models.CharField(max_length=10)
+    channel = models.CharField(max_length=20, choices=DELIVERY_CHANNELS, default="in_app")
+    data_mode = models.CharField(max_length=12)
+    document_types = models.JSONField(default=list)
+    # Explicit owner-selected snapshots; later classifications never expand a snapshot permission.
+    initial_versions = models.JSONField(default=dict)
+    include_future_files = models.BooleanField(default=False)
+    include_future_versions = models.BooleanField(default=False)
+    include_sensitive = models.BooleanField(default=False)
+    expires_at = models.DateTimeField()
+    max_requests = models.PositiveIntegerField(default=100)
+    requests_used = models.PositiveIntegerField(default=0)
+    revision = models.PositiveIntegerField(default=1)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["owner", "operation_id"], name="owner_case_permission_operation")
+        ]
+
+
+class CustomerToken(Record):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    kind = models.CharField(
+        max_length=10, choices=[("device", "Mobile device"), ("agent", "Recipient agent")]
+    )
+    name = models.CharField(max_length=80)
+    token_hash = models.CharField(max_length=64, unique=True)
+    policy = models.ForeignKey(StandingPolicy, null=True, blank=True, on_delete=models.PROTECT)
+    policy_revision = models.PositiveIntegerField(default=0)
+    data_mode = models.CharField(max_length=12)
+    expires_at = models.DateTimeField()
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(kind="device", policy__isnull=True)
+                    | models.Q(kind="agent", policy__isnull=False)
+                ),
+                name="customer_token_scope",
+            )
+        ]
+
+
+class CaseRequest(Record):
+    requester = models.ForeignKey(User, on_delete=models.PROTECT)
+    policy = models.ForeignKey(StandingPolicy, on_delete=models.PROTECT)
+    operation_id = models.CharField(max_length=100)
+    input_hash = models.CharField(max_length=64)
+    result = models.JSONField(default=dict)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["requester", "operation_id"], name="requester_case_operation")
+        ]
+
+
+class ChatExchange(Record):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    operation_id = models.CharField(max_length=100)
+    input_hash = models.CharField(max_length=64)
+    message = models.CharField(max_length=2000)
+    reply = models.TextField()
+    result = models.JSONField(default=dict)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["owner", "operation_id"], name="owner_chat_operation")]

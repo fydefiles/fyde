@@ -1,6 +1,6 @@
 # Fyde
 
-Fyde finds and shares files with known contacts. A trusted backend binds each send to a verified recipient, an exact immutable version, a permission, an operation ID, and an expiry. Company workflows use a separate database and sanitized inputs.
+Fyde is a chat-first file-sharing app for web, iOS and Android. It finds and shares files with known contacts. A trusted backend binds each send to a verified recipient, an exact immutable version, a permission, an operation ID, and an expiry. Company workflows use a separate database and sanitized inputs.
 
 The repository was empty on November 7, 2026. This implementation uses Django 5.2 LTS, PostgreSQL for production and SQLite for local development, private filesystem storage, and durable database jobs. The application is usable locally. Live email/SMS, billing, Naïve, Reddit, Instagram, and hosted deployment require the accounts and controls listed in [product.md](product.md).
 
@@ -33,7 +33,9 @@ Defaults need no external credentials. An optional `.env` can copy `.env.example
 
 The channel selector applies to each send; Settings saves a default. Explicit command suffixes override the selector. A successful app delivery consumes one unit immediately, with no email/SMS provider dependency. Optional notification failure does not reverse a file already received. Repeated downloads only debit bandwidth. Receiving is free and uses the original owner’s version and permissions; it does not copy the document into the recipient’s owned files.
 
-The command resolver currently supports bounded English `find`, `send`, `share`, and `email` commands. It normalizes résumé/resume and handles matching contact aliases. Ambiguity requires a choice. Pronouns require explicitly saved, 15-minute app context. No external language model receives customer documents. General semantic conversation, voice, local folders, and wearable integrations remain future work.
+New accounts start with file import, contact relationships and permission setup. The primary screen is private chat, shared across web and mobile. Owners can authorize a verified recipient to request any supported document type within one assigned case, with explicit future-file/version and sensitivity choices. A recipient agent can use one scoped credential to request and download permitted files while the owner is offline. See [mobile setup and the agent protocol](docs/mobile-and-agents.md).
+
+The command resolver currently supports bounded English `find`, `send`, `share`, `email` and case `request` commands. It normalizes résumé/resume and handles matching contact aliases. Ambiguity requires a choice. Pronouns require explicitly saved, 15-minute app context. No external language model receives customer documents. General semantic conversation, voice, local folders, and wearable integrations remain future work. The native client source is in `mobile/client`; its browser preview is a separate React Native web surface. iOS/Android distribution, physical-device QA and live provider integrations have separate readiness states in the tracker.
 
 ## Company operation
 

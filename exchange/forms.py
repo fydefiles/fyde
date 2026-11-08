@@ -22,9 +22,10 @@ class SignupForm(UserCreationForm):
 class ContactForm(forms.ModelForm):
     class Meta:
         model = Contact
-        fields = ("name", "email", "phone", "aliases")
+        fields = ("name", "email", "phone", "relationship", "aliases")
         labels = {
             "phone": "Phone with country code (optional)",
+            "relationship": "Relationship (for example, lawyer)",
             "aliases": "Other names (comma separated, optional)",
         }
 

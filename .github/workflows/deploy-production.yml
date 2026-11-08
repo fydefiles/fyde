@@ -1,0 +1,76 @@
+name: Deploy approved production revision
+on:
+  workflow_run:
+    workflows: ['Verify application']
+    types: [completed]
+    branches: [main]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+jobs:
+  deploy-production:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      vars.PRODUCTION_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://fyde.mehmetuzgoren.workers.dev
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            cloudflare/package-lock.json
+      - name: Confirm this verified revision is still main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)" = "$RELEASE_SHA"
+      - run: npm ci --prefix backend
+      - run: npm --prefix backend run build
+      - name: Deploy API and scheduled file processor to Neon
+        working-directory: backend
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+          SITE_URL: https://fyde.mehmetuzgoren.workers.dev
+        run: >-
+          node_modules/.bin/neon deploy --config neon.ts
+          --project-id patient-cherry-39934916 --branch br-dry-dust-bez1dfpd
+          --no-env-pull
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: fyde-web-${{ github.event.workflow_run.head_sha }}
+          path: mobile/client/dist
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+      - run: npm ci --prefix cloudflare
+      - name: Deploy the verified website and API proxy to Cloudflare
+        working-directory: cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npm run deploy:production
+      - name: Verify hosted release identity and public pages
+        env:
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+          APP_URL: https://fyde.mehmetuzgoren.workers.dev
+        run: |
+          curl --fail --silent --retry 4 --retry-delay 5 --retry-all-errors --max-time 30 "$APP_URL/health/" | python -c 'import json,sys; result=json.load(sys.stdin); assert result["revision"] == sys.argv[1], result' "$RELEASE_SHA"
+          for path in / /help /privacy /pricing; do
+            curl --fail --silent --max-time 20 "$APP_URL$path" > /dev/null
+          done

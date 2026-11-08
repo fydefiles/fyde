@@ -239,7 +239,7 @@ export function createApp(
   app.get("/api/v1/auth/config/", (c) =>
     c.json({
       provider: "neon",
-      google: true,
+      google: cfg.googleEnabled !== false,
       email_verification: true,
       runtime: "typescript",
     }),
@@ -326,6 +326,12 @@ export function createApp(
     return c.json({ reset: true, message: "Password updated. Sign in again." });
   });
   app.post("/api/v1/auth/google/start/", async (c) => {
+    if (cfg.googleEnabled === false)
+      throw new PolicyError(
+        "provider_unavailable",
+        "Google sign-in is not configured. Use email and password.",
+        503,
+      );
     const data = z
       .object({
         code_challenge: z.string().regex(/^[A-Za-z0-9_-]{43}$/),

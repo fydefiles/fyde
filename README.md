@@ -66,6 +66,8 @@ The database-backed journeys protect disclosure, verification, permissions, mete
 
 ## Deployment
 
+The [production website and mobile API](docs/production.md) use `https://fyde.mehmetuzgoren.workers.dev`. Native preview and release profiles select that origin. Production data and credentials are separate from development.
+
 The customer hosting path is [Cloudflare plus Neon Functions](docs/cloudflare-neon.md). Its development deployment workflow follows a successful verified `dev` push and checks the hosted Git SHA. Production promotion requires a separate release request.
 
 The legacy Docker image runs the Django fixture/company app as an unprivileged user. Its container host and SSH scripts are retained for that separate runtime; the customer deployment does not use them. See [operations](docs/operations.md) and [the implementation register](product.md) for the remaining provider dependencies.

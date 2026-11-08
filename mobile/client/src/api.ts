@@ -9,7 +9,7 @@ export const API_ROOT = (
   Platform.OS === "web" && typeof window !== "undefined"
     ? window.location.origin
     : process.env.EXPO_PUBLIC_API_URL || (!__DEV__
-      ? "https://fyde-dev.mehmetuzgoren.workers.dev"
+      ? "https://fyde.mehmetuzgoren.workers.dev"
       : Platform.OS === "android" ? "http://10.0.2.2:8000" : "http://127.0.0.1:8000")
 ).replace(/\/$/, "");
 const key = "fyde.customer.session";

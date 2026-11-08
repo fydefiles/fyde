@@ -1,5 +1,8 @@
 .git
 .venv
+**/.venv
+**/node_modules
+mobile/client/dist
 .env
 .env.*
 !.env.example

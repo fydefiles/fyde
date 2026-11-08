@@ -30,6 +30,18 @@ services:
     security_opt: ['no-new-privileges:true']
     cap_drop: [ALL]
     mem_limit: 768m
+  search:
+    image: ${FYDE_IMAGE}
+    command: ['python', 'manage.py', 'run_search_indexer']
+    restart: unless-stopped
+    env_file: /etc/fyde/search.env
+    environment:
+      FYDE_LOAD_DOTENV: '0'
+      FYDE_VAR_DIR: /tmp/search
+    tmpfs: ['/tmp:mode=1777,size=128m']
+    security_opt: ['no-new-privileges:true']
+    cap_drop: [ALL]
+    mem_limit: 512m
   bridge:
     image: ${FYDE_IMAGE}
     command: ['python', 'manage.py', 'run_bridge']

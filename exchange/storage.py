@@ -1,4 +1,5 @@
 import hashlib
+import json
 import os
 import re
 import socket
@@ -130,6 +131,7 @@ def inspect_local_version(version, path):
     import subprocess
     import sys
 
+    pages = []
     try:
         raw = path.read_bytes()
         if hashlib.sha256(raw).hexdigest() != version.sha256:
@@ -164,7 +166,9 @@ def inspect_local_version(version, path):
             )
             if result.returncode:
                 raise PolicyError("extraction_failed", "Extraction failed. The file remains quarantined.")
-            text = result.stdout[:250000]
+            extracted = json.loads(result.stdout)
+            text = extracted["text"][:250000]
+            pages = extracted["pages"]
             if not text.strip():
                 raise PolicyError("no_extractable_text", "No readable text was found. OCR is not configured.")
         version.state = "ready"
@@ -175,7 +179,7 @@ def inspect_local_version(version, path):
             if settings.SCAN_ADAPTER == "text_only"
             else "ClamAV and bounded extraction"
         )
-    except (PolicyError, UnicodeError, OSError, subprocess.SubprocessError) as error:
+    except (PolicyError, UnicodeError, OSError, subprocess.SubprocessError, ValueError, KeyError) as error:
         version.state = "quarantined"
         version.extraction_state = "blocked"
         version.check_detail = (
@@ -189,10 +193,15 @@ def inspect_local_version(version, path):
         state=version.state,
         extraction_state=version.extraction_state,
         extracted_text=version.extracted_text,
+        page_offsets=pages,
         check_detail=version.check_detail,
     )
     if not updated:
         version.refresh_from_db()
         return version
     audit(version.document.owner, "file.indexed", version.pk, version.state)
+    if version.state == "ready":
+        from .search import enqueue_index
+
+        enqueue_index(version)
     return version

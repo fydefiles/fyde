@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 12
     services:
       postgres:
-        image: postgres:17-alpine
+        image: pgvector/pgvector:0.8.7-pg17-bookworm
         env:
           POSTGRES_USER: fyde
           POSTGRES_PASSWORD: fixture-only

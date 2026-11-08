@@ -23,6 +23,8 @@ os.environ["FILE_STORAGE"] = "local"
 os.environ["AWS_ACCESS_KEY_ID"] = ""
 os.environ["AWS_SECRET_ACCESS_KEY"] = ""
 os.environ["AWS_ENDPOINT_URL_S3"] = ""
+os.environ["SEARCH_EMBEDDING_URL"] = ""
+os.environ["SEARCH_GOOGLE_SERVICE_ACCOUNT"] = ""
 from .settings import *  # noqa: F403
 
 DATABASES["default"] = {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}  # noqa: F405

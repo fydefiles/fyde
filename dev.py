@@ -27,6 +27,7 @@ signal.signal(signal.SIGINT, stop)
 for args in (
     ["runserver", "127.0.0.1:8000", "--noreload"],
     ["run_delivery"],
+    ["run_search_indexer"],
     ["run_bridge"],
     ["run_company"],
 ):

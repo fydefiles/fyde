@@ -1,6 +1,7 @@
 """Bounded customer-data parser subprocess; never executes document code."""
 
 import resource
+import json
 import sys
 import zipfile
 from pathlib import Path
@@ -18,11 +19,16 @@ if mime == "application/pdf":
     if len(reader.pages) > 100 or reader.is_encrypted:
         raise ValueError("PDF exceeds extraction policy")
     pieces = []
-    for page in reader.pages:
-        pieces.append((page.extract_text() or "")[:25000])
-        if sum(map(len, pieces)) >= 250000:
+    pages = []
+    length = 0
+    for number, page in enumerate(reader.pages, 1):
+        text = (page.extract_text() or "")[:min(25000, 250000 - length)]
+        pages.append({"page": number, "start": length, "end": length + len(text)})
+        pieces.append(text)
+        length += len(text) + 1
+        if length >= 250000:
             break
-    print("\n".join(pieces)[:250000])
+    print(json.dumps({"text": "\n".join(pieces)[:250000], "pages": pages}))
 else:
     with zipfile.ZipFile(path) as archive:
         if sum(i.file_size for i in archive.infolist()) > 20 * 1024 * 1024:
@@ -33,4 +39,4 @@ else:
         if b"<!DOCTYPE" in data.upper() or b"<!ENTITY" in data.upper():
             raise ValueError("XML entities are forbidden")
         root = ElementTree.fromstring(data)
-        print(" ".join(root.itertext())[:250000])
+        print(json.dumps({"text": " ".join(root.itertext())[:250000], "pages": []}))

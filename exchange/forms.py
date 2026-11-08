@@ -22,11 +22,31 @@ class SignupForm(UserCreationForm):
 class ContactForm(forms.ModelForm):
     class Meta:
         model = Contact
-        fields = ("name", "email", "aliases")
-        labels = {"aliases": "Other names (comma separated, optional)"}
+        fields = ("name", "email", "phone", "aliases")
+        labels = {
+            "phone": "Phone with country code (optional)",
+            "aliases": "Other names (comma separated, optional)",
+        }
 
     def clean_email(self):
         return self.cleaned_data["email"].lower()
+
+    def clean_phone(self):
+        from .recipients import phone_number
+        from .policy import PolicyError
+
+        try:
+            return phone_number(self.cleaned_data.get("phone", ""))
+        except PolicyError as error:
+            raise forms.ValidationError(str(error)) from None
+
+    def clean(self):
+        cleaned = super().clean()
+        if not cleaned.get("email") and not cleaned.get("phone"):
+            raise forms.ValidationError(
+                "Add an email address or a phone number so Fyde can identify the recipient."
+            )
+        return cleaned
 
 
 class UploadForm(forms.Form):

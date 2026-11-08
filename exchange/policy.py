@@ -30,7 +30,7 @@ def entitlement(owner):
     return key, plans()["plans"].get(key, plans()["plans"]["free"]), sub
 
 
-def current_period(owner):
+def current_period(owner, mode=None):
     _, _, sub = entitlement(owner)
     now = timezone.now()
     if (
@@ -43,7 +43,7 @@ def current_period(owner):
     else:
         start = datetime(now.year, now.month, 1, tzinfo=dt_timezone.utc)
         end = datetime(now.year + (now.month == 12), now.month % 12 + 1, 1, tzinfo=dt_timezone.utc)
-    mode = "fixture" if settings.EMAIL_ADAPTER == "local" else "live"
+    mode = mode or owner.data_mode
     period, _ = UsagePeriod.objects.get_or_create(
         owner=owner, starts_at=start, data_mode=mode, defaults={"ends_at": end}
     )
@@ -67,7 +67,10 @@ def check_grant(grant, *, owner=None, contact=None, version=None):
     contact = contact or grant.contact
     version = version or grant.version
     document = version.document
-    if settings.EMAIL_ADAPTER == "resend" and owner.data_mode != "live":
+    live_external = (grant.channel == "email" and settings.EMAIL_ADAPTER == "resend") or (
+        grant.channel == "phone" and settings.SMS_ADAPTER == "twilio"
+    )
+    if live_external and owner.data_mode != "live":
         raise PolicyError(
             "fixture_identity",
             "Local fixture identities cannot send through a live provider. Create and verify a live account.",
@@ -80,16 +83,27 @@ def check_grant(grant, *, owner=None, contact=None, version=None):
         raise PolicyError("paused", "Sharing is paused.")
     if not owner.email_verified:
         raise PolicyError("owner_verification_required", "Verify your email before sharing.")
-    if not contact.verified_at or grant.endpoint_revision != contact.endpoint_revision:
-        raise PolicyError("verification_required", "The recipient must verify their current email address.")
+    verified = (
+        (contact.phone and contact.phone_verified_at)
+        if grant.identity_kind == "phone"
+        else (contact.email and contact.verified_at)
+    )
+    if not verified or grant.endpoint_revision != contact.endpoint_revision:
+        raise PolicyError(
+            "verification_required", "The recipient must verify their current contact endpoint."
+        )
     if grant.revoked_at or now >= grant.expires_at:
         raise PolicyError("revoked_or_expired", "This sharing permission has expired or been revoked.")
     if document.deleted_at or version.state != "ready":
         raise PolicyError("quarantined", "This file has not passed the configured safety checks.")
     if document.sensitive and not grant.sensitive_authorized:
         raise PolicyError("owner_authorization_required", "Sensitive files need an explicit permission.")
-    if grant.channel != "email":
-        raise PolicyError("unsupported_channel", "This permission does not allow email delivery.")
+    if grant.channel not in ("in_app", "email", "phone") or grant.identity_kind not in ("email", "phone"):
+        raise PolicyError("unsupported_channel", "This permission uses an unsupported delivery channel.")
+    if grant.channel in ("email", "phone") and grant.channel != grant.identity_kind:
+        raise PolicyError(
+            "binding_changed", "This permission does not match the selected recipient endpoint."
+        )
 
 
 def execution_binding(transfer):
@@ -108,11 +122,26 @@ def execution_binding(transfer):
         transfer.expires_at.isoformat(),
         "email",
     ]
+    if transfer.binding_version >= 2:
+        values.extend(
+            [transfer.channel, transfer.recipient_phone, transfer.grant.identity_kind, transfer.contact.phone]
+        )
     return hashlib.sha256(json.dumps(values, separators=(",", ":")).encode()).hexdigest()
 
 
 def check_transfer(transfer):
+    if transfer.binding_version not in (1, 2):
+        raise PolicyError("binding_changed", "This transfer uses an unsupported binding version.")
+    if transfer.data_mode != transfer.owner.data_mode:
+        raise PolicyError("mode_changed", "This transfer belongs to a different identity mode.")
     check_grant(transfer.grant, owner=transfer.owner, contact=transfer.contact, version=transfer.version)
+    if transfer.channel != transfer.grant.channel or (
+        transfer.binding_version == 1
+        and (
+            transfer.channel != "email" or transfer.recipient_phone or transfer.grant.identity_kind != "email"
+        )
+    ):
+        raise PolicyError("binding_changed", "The delivery channel changed. Create a new transfer.")
     if transfer.revoked_at or timezone.now() >= transfer.expires_at:
         raise PolicyError("revoked_or_expired", "This transfer has expired or been revoked.")
     if not hmac.compare_digest(transfer.binding, execution_binding(transfer)):
@@ -121,8 +150,8 @@ def check_transfer(transfer):
         )
 
 
-def reserve_quota(owner):
-    period = current_period(owner)
+def reserve_quota(owner, mode=None):
+    period = current_period(owner, mode)
     _, plan, _ = entitlement(owner)
     condition = UsagePeriod.objects.filter(pk=period.pk)
     if plan["sends"] is not None:
@@ -159,9 +188,11 @@ def settle_quota(transfer, accepted):
 
 @transaction.atomic
 def reverse_quota(transfer):
-    from .models import Transfer
+    from .models import InboxItem, Transfer
 
     transfer = Transfer.objects.select_for_update().get(pk=transfer.pk)
+    if transfer.accessed_at or InboxItem.objects.filter(transfer=transfer).exists():
+        return
     if transfer.quota_state != "consumed":
         return
     UsageEntry.objects.get_or_create(

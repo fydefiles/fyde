@@ -56,7 +56,8 @@ Unproven hypotheses include willingness to pay, the best free-tier allowance, wh
 3. The user says or types, “Send my résumé to John.” If the app has an authorized conversation context explicitly identifying John and the résumé, “Send it to him” also works.
 4. The system resolves a specific file version and a specific verified contact endpoint.
 5. A policy-authorized transfer happens without an extra confirmation; otherwise, the app asks only the missing question.
-6. The user sees an accurate receipt: what was sent, to which endpoint, through which channel, and the actual delivery status.
+6. Fyde delivers to the receiving account by default. The sender can choose email or phone (SMS) for a download link instead. Received files are downloadable in the app; matching verified accounts also see externally notified files in their Received page.
+7. The user sees an accurate receipt: what was sent, to which endpoint, through which channel, and the actual delivery status.
 
 Do not claim to know who is in a room, read unrelated conversations, or infer an address from a public name. “John” with two plausible contacts requires disambiguation. A clarification is not a failure of autonomy; a wrong disclosure is.
 
@@ -86,7 +87,7 @@ The growth agent researches a useful adjacent topic, verifies factual claims, re
 - Authentication and strict per-user isolation.
 - Private uploaded-file repository, metadata extraction, searchable contents, previews, tags, and explicit versions.
 - Contacts, endpoint verification, preferred delivery channel, and contextual recipient resolution.
-- Natural-language search and email delivery of recipient-bound access links.
+- Natural-language search and default delivery to a verified Fyde inbox; optional email or SMS download links.
 - Standing grants and a verified incoming-request flow.
 - Transfer receipts, revocation, retry safety, usage metering, and configurable plan limits.
 - First-party feedback submission plus a clear invitation to review on the subreddit.
@@ -154,7 +155,7 @@ An optional context-input contract can carry `session_id`, `source`, `transcript
 
 Use an adapter boundary such as `prepare`, `send`, `reconcile`, and `capabilities`; exact code follows the repository's conventions. Implement one real channel before claiming support for others.
 
-Email is the initial default. If sending from the application domain, identify the user clearly without spoofing their address. Sending from the user's mailbox requires explicit account authorization. Do not imply that a provider has delivered or read an email just because it accepted the send request.
+Fyde’s verified recipient inbox is the default. The owner can select email or phone (SMS) per send and save a different default in Settings. Received files remain downloadable inside Fyde under the original owner’s permission, expiry and revocation. External links also appear in the matching verified account’s inbox; an account is not required for guest email/SMS verification and download. Phone numbers must include a country code and be verified before use. If sending from the application domain, identify the user clearly without spoofing their address. Sending from the user's mailbox requires explicit account authorization. Do not imply that a provider has delivered or read an email just because it accepted the send request.
 
 Default to short-lived, recipient-bound access links. Require identity verification before access; use an authorization endpoint rather than a permanent public storage URL. Recheck grants at redemption. Keep content out of filenames in public URLs, preview metadata, logs, and analytics.
 
@@ -269,9 +270,9 @@ These are the founder's starting hypotheses, not validated economics. Keep plan 
 
 ### 8.2 Suggested initial metering contract — adjustable hypothesis
 
-One send unit is **one file version handed successfully to a delivery provider for one recipient**. Three files to one recipient use three units; one file to three recipients uses three. This definition must be visible in the UI and pricing FAQ and can be revised after feedback.
+One send unit is **one file version made available in a verified recipient’s Fyde inbox, or accepted by an external delivery provider, for one recipient**. Both events belong to the same transfer and count once. Three files to one recipient use three units; one file to three recipients uses three. This definition must be visible in the UI and pricing FAQ and can be revised after feedback.
 
-A search, rejected request, failed attempt before provider acceptance, or idempotent retry does not consume a unit. Reopening the same access link does not create another send unit. An intentional new send does. Bundle counting is by constituent files, not by the bundle container.
+A search, rejected request, failed attempt before either inbox delivery or provider acceptance, or idempotent retry does not consume a unit. A failed external notification cannot reverse a file already received in the app or accessed. Reopening the same access link does not create another send unit. An intentional new send does. Bundle counting is by constituent files, not by the bundle container.
 
 Reserve quota atomically before dispatch to prevent concurrent requests bypassing the cap. Finalize once on acceptance; release unused reservations. Keep append-only reversal entries for definitive terminal delivery failures according to the published policy, without double-crediting repeated callbacks. Partial sends count only the accepted items. Unknown delivery outcomes stay reconcilable rather than being treated as a new send.
 
@@ -439,7 +440,7 @@ Use a drill-down trace from feedback through specification, code, checks, deploy
 
 ### 13.2 Definitions
 
-- **Activated user:** An authenticated sender completes a first authorized transfer accepted by a provider; separately track recipient access/delivery evidence.
+- **Activated user:** An authenticated sender completes a first authorized transfer made available in a verified inbox or accepted by a provider; separately track recipient access/delivery evidence.
 - **Transfer completion:** Report the exact stage measured. No invented read receipts.
 - **Repeat use:** A user completes another transfer in the specified observation window; distinguish demo fixtures from real attendees.
 - **Autonomous completion rate:** Successfully completed eligible business jobs with no human intervention divided by all eligible jobs attempted in the window. Count failures, blocks, and human-intervened jobs; report categories separately.
@@ -461,7 +462,7 @@ Stop conditions include exhausted budget, unauthorized-data risk, failed baselin
 
 ### M1 — Real file-sharing vertical slice
 
-A real test user signs in, adds a non-sensitive sample file and contact, requests a send, passes authorization, and receives a real provider-backed receipt. The recipient accesses the intended file through verification. Wrong-recipient, cross-tenant, revoked-access, and duplicate-event tests pass.
+A real test user signs in, adds a non-sensitive sample file and contact, requests a send, passes authorization, and receives an accurate app-delivery or provider-backed receipt. The recipient accesses the intended file through verification. Wrong-recipient, cross-tenant, revoked-access, and duplicate-event tests pass.
 
 ### M2 — Delegated request fulfillment
 
@@ -538,10 +539,10 @@ PostgreSQL verification passed 29 database-backed journeys at the recorded basel
 | P01 | verified | Empty local/remote inspection and architecture decision recorded | Preserve Django implementation |
 | P02, P06, P10, P11 | verified | Local/browser and PostgreSQL integration evidence for auth/isolation, exact-version grants, receipts/pauses, atomic metering | Repeat affected smoke journey on configured host |
 | P03 | in_progress | Private uploads, immutable versions, inert UTF-8 indexing, preview/export; PDF/DOCX fail closed | Configure ClamAV and verify PDF/DOCX live path; OCR remains unavailable |
-| P04 | in_progress | Contact aliases, email verification, endpoint revision invalidation, ambiguity handling work | Email is the only implemented/preferred channel; no contact import |
+| P04 | in_progress | Contact aliases, verified email/phone identities, endpoint revision invalidation, ambiguity handling, channel choice and saved default | No contact import; live SMS activation remains unverified |
 | P05 | in_progress | Bounded English find/send/share/email resolver and explicit 15-minute context work | General semantic conversation/history queries remain incomplete |
-| P07–P08 | blocked | Trusted controller, stable operation IDs, Resend adapter and verified recipient download exist; provider timeouts simulated | F03: configure sender, HTTPS origin, credentials and email budget; perform a real send |
-| P09 | verified | Two permitted versions and one unauthorized request yield two sends plus a private unavailable result in integration evidence | Live proof depends on F03 |
+| P07–P08 | in_progress | Default native delivery, received-file downloads, channel-bound grants, stable operation IDs, Resend and optional Twilio adapters; fixture/HTTP checks protect delivery and uncertainty | Native workflow verified locally. Hosted/live account smoke needs F01/F03; optional live SMS needs F14 |
+| P09 | verified | Partial exact-version requests and matching account/endpoint identity work; native requests honor the granted delivery channel | Repeat on configured host; external channels need their provider setup |
 | P12 | in_progress | Checkout/portal and verified subscription lifecycle implemented and tested with fixtures | F06; complete refund and settled revenue reconciliation before paid launch |
 | P13 | in_progress | Per-file original export, metadata export, document-byte/text deletion, permission/privacy disclosures | Account deletion, retention expiry and backup erasure remain incomplete; F08 |
 | P14 | deferred | No local-folder, messaging, voice or Vexo integration claimed | F11, after core live workflow |
@@ -592,6 +593,16 @@ Local runtime data and generated marketing assets were preserved in the original
 Recoverable worktree archival was attempted immediately after the GitHub merge. Codex returned **“The task's primary checkout cannot be removed.”** The protected checkout remains untouched at `/Users/mehmetuzgoren/.codex/worktrees/fyde-implementation/fyde`; archive is blocked, not complete. No forced removal or chat closure was attempted. App/operator action is needed before that protected designation can permit archival.
 
 No production/main promotion occurred. The next product milestone remains F01/F03: configure public HTTPS hosting and a verified email sender with explicit cost/count budgets, then verify a real send and recipient access. Genuine feedback-to-release and live publishing remain blocked on the founder actions already recorded.
+
+### Direction update: Fyde delivery is the default
+
+Founder direction: deliver shared files inside Fyde by default, with optional email or phone delivery, and make received files downloadable in the app. This supersedes the earlier email-first delivery decision.
+
+Baseline: the current transfer controller always queues email, grants are email-only, and there is no recipient inbox. Existing email sending, permissions, immutable-version bindings and quota safeguards must remain working.
+
+Status: `locally verified; GitHub delivery pending`. The authenticated Received page, native delivery without an external provider, per-send/default channel selection and optional SMS-link adapter are implemented. Preserve exact-recipient verification for each channel, revocation/expiry at download, fixture/live separation and one charge per file-recipient transfer. Phone delivery means SMS links; it is not iMessage. Existing accounts and email delivery must continue working.
+
+Evidence: 19 existing exchange integration journeys pass. Nine new receiving journeys pass, protecting the native default, exact original bytes, wrong-account denial, verification/mode boundaries, pause/expiry/revocation/hash checks, quota deduplication, notification failure, linked phones, standing requests, legacy email bindings and mocked Twilio acceptance/uncertainty. These are local fixtures and mocked HTTP responses. All 41 database-backed journeys passed on PostgreSQL, including real row-lock concurrency. The native browser journey completed sender command → received-file inbox → original-file download for transfer `95b0d7a1-a6f2-44c0-8061-e8dc0a83069e`. The downloaded SHA-256 is `90281af4750128e05e1e2667692b215ddaed30d6c15fdace66d7aa7d788ccdc3`, matching the uploaded fixture. Desktop (1280×900) and phone-sized (390×844) UI inspection passed; the narrow layout has a 390 px content width and viewport. Screenshots: `artifacts/evidence/received-desktop.png`, `artifacts/evidence/received-mobile.png`. The actual existing database upgrade retained its legacy email transfer and valid version-1 binding. GitHub delivery verification remains pending. External email/SMS activation still requires authorized credentials and budgets. Native delivery between already verified accounts calls neither provider. New live account email verification still needs the email service. No live SMS/email was sent. Company settings explicitly disable SMS and clear Twilio credentials, verified in a separate process with fixture sentinel values. Broader company, hosting and marketing blockers above remain unchanged.
 
 ### Product and delivery
 
@@ -652,6 +663,7 @@ These are external authority/account decisions, not requests to describe the cod
 | F01 | Confirm name/domain and public support identity | Chosen settings and DNS/account control | blocked |
 | F02 | Authorize Naïve and other paid providers; set spending caps | Secret references, limits, successful scoped test | blocked |
 | F03 | Authorize sending domain/mailbox and required email configuration | Verified sender and successful real send | blocked |
+| F14 | Optional: authorize Twilio SMS sender and destination registrations; set segment-cost, daily USD and message-count caps | Set SMS_ADAPTER=twilio, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, SMS_FROM, HTTPS SITE_URL, SMS_UNIT_COST_USD, SMS_DAILY_BUDGET_USD and SMS_DAILY_LIMIT in the customer worker secret store; complete a consent-safe verification/send/download smoke | blocked; native delivery is independent |
 | F04 | Create/identify product subreddit and obtain approved commercial API use | Approved use case and scoped credentials; own form works meanwhile | blocked |
 | F05 | Connect the Instagram professional account and publishing permissions | Valid account authorization and successful permitted publish | blocked |
 | F06 | Activate payment account and approve live billing | Operator activation; verified prices, terms, webhook, portal | blocked |
@@ -672,6 +684,7 @@ Company formation, account verification, contractual approvals, disputed payment
 | 2026-11-07 | Broad contact-to-contact file exchange, not a profession-specific app | Founder direction | Yes | Founder |
 | 2026-11-07 | Reddit preferred; first-party feedback as operational fallback | Founder direction plus access dependency | Yes | Founder / product agent |
 | 2026-11-07 | Educational adjacent-topic carousels with final-slide CTA | Founder direction | Yes | Founder / growth agent |
+| 2026-11-07 | Deliver in Fyde by default; optional email/SMS links and received-file downloads | Founder follow-up | Yes | Founder |
 | 2026-11-07 | Treat $0 / $5 / $20 tiers as a configurable experiment | Founder direction; economics unvalidated | Yes | Founder |
 
 ### Build-session update template

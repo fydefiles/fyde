@@ -1,0 +1,1 @@
+<label class="delivery-choice">Deliver via<select name="channel" aria-label="Delivery channel">{% for value, label in delivery_channels %}<option value="{{ value }}"{% if value == selected_channel %} selected{% endif %}>{{ label }}{% if value == 'in_app' %} · in-app inbox{% endif %}</option>{% endfor %}</select></label>

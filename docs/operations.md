@@ -1,13 +1,13 @@
 # Operator runbook, version 2026-11-07
 
-This runbook describes the implemented controls and the setup needed for live operation. No hosting, email domain, paid subscription, social account, or Naïve session has been activated by this build.
+This runbook describes the implemented controls and the setup needed for live operation. No hosting, email/SMS sender, paid subscription, social account, or Naïve session has been activated by this build.
 
 ## Roles and credentials
 
 | Process | Allowed data and credentials | Excluded |
 | --- | --- | --- |
 | Web / trusted customer backend | Customer database, private files, session key; company database for staff views and controlled intake | Builder/deployment credentials |
-| Customer delivery worker | Customer database, private files, scoped email key, configured email budget | Naïve, Instagram, GitHub release keys |
+| Customer delivery worker | Customer database, private files, scoped email/SMS keys and separate configured budgets | Naïve, Instagram, GitHub release keys |
 | Trusted bridge | Scoped customer feedback/notification/aggregate access and company database | General agent execution, file mounts, deployment tools |
 | Company coordinator | Company database, sanitized help content, scoped Naïve sessions key and budget | Customer database credentials, customer file mounts, mailbox and billing keys |
 | Remote content builder | One public help JSON file and sanitized opt-in feedback; output schema only | External tools, identity grants, production data, secrets, GitHub access |
@@ -25,9 +25,22 @@ The coordinator is trusted orchestration code, not the untrusted model. Run the 
 2. Set `EMAIL_ADAPTER=resend`, `EMAIL_FROM`, `RESEND_API_KEY`, the public HTTPS `SITE_URL`, positive `EMAIL_UNIT_COST_USD` and `EMAIL_DAILY_BUDGET_USD`, and `EXTERNAL_EMAIL_DAILY_LIMIT`.
 3. Supervise `run_delivery`. It persists email intent before sending, reserves the configured estimated spend once, and uses a stable Resend idempotency key. Unknown outcomes retain quota and can retry the same immutable payload at most three times inside 23 hours. Beyond that, operator/provider reconciliation is required. Resend documents a 24-hour provider idempotency window.
 4. Create a fresh live account; fixture identities and local verification cannot authorize live sends. Complete real sender/contact verification, a send and recipient download using a consent-safe sample. Preserve the provider ID and receipt; do not mark M1 live-verified before this.
-5. Use `manage.py reconcile_delivery [transfer_id]` to retrieve provider status. Provider-reported terminal failures reverse usage once. Do not invent delivery/read evidence.
+5. Use `manage.py reconcile_delivery [transfer_id]` to retrieve provider status. Provider-reported terminal failures reverse usage once only if the file was never available in a verified inbox or accessed. Do not invent delivery/read evidence.
 
 Config-blocked jobs remain visibly blocked. Cancel an unsent transfer to release its unused quota, resolve configuration, and create a new operation. Revoking an uncertain send keeps its reservation until the provider outcome is reconciled; it does not authorize a resend.
+
+## App and optional phone delivery
+
+Fyde is the default channel. It matches an active account in the same live/fixture mode by verified email or linked, verified E.164 phone. If both endpoints identify different accounts, native delivery stops for correction. An unregistered contact needs email or SMS delivery instead. Received records bind the original transfer to one account; later endpoint changes cannot reassign them. Every download rechecks identity, permissions, pauses, expiry, revocation and original-file hash. No external provider is called for native delivery.
+
+The [Twilio Messages API](https://www.twilio.com/docs/messaging/api/message-resource) adapter sends and reconciles SMS messages. Phone means an SMS link to a download page in Fyde, not a phone attachment or iMessage. New phone identities require a verified account email and an SMS challenge. Contact-phone verification alone never links the number to a receiving account. Email and phone proofs are distinct and cannot authorize each other’s permissions.
+
+1. Use `SMS_ADAPTER=local` only for development fixtures. The default is `disabled`; the app labels missing connection status and never claims an SMS was sent.
+2. For live SMS, authorize a Twilio account and sender appropriate to the destinations, then place `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and an E.164 `SMS_FROM` in the customer worker’s secret store. Set `SMS_ADAPTER=twilio`, HTTPS `SITE_URL`, positive `SMS_UNIT_COST_USD` (per segment including carrier charges), `SMS_DAILY_BUDGET_USD`, and `SMS_DAILY_LIMIT`. Country/sender registration and messaging permissions require operator completion. Never give these credentials to business agents.
+3. The worker reserves a conservative Unicode segment estimate and one message count before the provider call; bodies over 480 characters are blocked. Account-specific observed costs remain unknown. A timeout or worker crash after an attempted SMS becomes `reconciliation_required`; this adapter establishes no safe provider idempotency contract, so it never automatically resends an uncertain message. Operator/provider evidence must resolve an unknown outcome before a new operation.
+4. Preserve an actual Twilio Message SID and complete a consent-safe recipient verification/download smoke before claiming live phone delivery. `reconcile_delivery` retrieves provider state for known accepted IDs without resending. No live SMS was sent during this implementation.
+
+Both external channels also create the inbox item immediately when the verified receiving account already matches. Otherwise accepted transfers can be claimed by the matching verified account from Received, until expiry. App delivery and external notification have separate evidence; notification failure cannot undo received bytes or refund a successful app delivery. Migration 0004 preserves existing email destinations, channel and version-1 bindings; all new transfers use the channel-bound version-2 form. Existing short-lived browser proofs may require fresh verification after upgrading.
 
 ## File checks and resource limits
 

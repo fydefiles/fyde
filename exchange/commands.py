@@ -38,17 +38,22 @@ def search_files(owner, query):
 
 def resolve_command(owner, command, context=None):
     command = command.strip()[:1000]
-    match = re.fullmatch(
-        r"(?:send|share|email)\s+(.+?)\s+(?:to|with)\s+(.+?)(?:\s+(?:by|via)\s+email)?[.!]?", command, re.I
-    )
+    channel = None
+    suffix = re.search(r"\s+(?:by|via|in)\s+(fyde|(?:the\s+)?app|email|phone|sms)[.!]?$", command, re.I)
+    if suffix:
+        label = suffix.group(1).lower()
+        channel = "email" if label == "email" else "phone" if label in ("phone", "sms") else "in_app"
+        command = command[: suffix.start()]
+    match = re.fullmatch(r"(send|share|email)\s+(.+?)\s+(?:to|with)\s+(.+?)[.!]?", command, re.I)
     if not match:
         return {
             "action": "search",
             "files": search_files(owner, command),
             "message": "Files matching your search.",
         }
-    file_text, recipient_text = match.groups()
-    recipient_text = re.sub(r"\s+(?:by|via)\s+email$", "", recipient_text, flags=re.I).strip(" .!")
+    verb, file_text, recipient_text = match.groups()
+    channel = channel or ("email" if verb.lower() == "email" else None)
+    recipient_text = recipient_text.strip(" .!")
     file_query = re.sub(r"^(?:my|the)\s+", "", file_text, flags=re.I)
     context = context or {}
     if normalize(file_query) in {"it", "this", "that"}:
@@ -74,14 +79,21 @@ def resolve_command(owner, command, context=None):
         contacts = [
             c
             for c in Contact.objects.filter(owner=owner)[:1000]
-            if query in [normalize(c.name), normalize(c.email), *[normalize(a) for a in c.aliases.split(",")]]
+            if query
+            in [
+                normalize(c.name),
+                normalize(c.email),
+                normalize(c.phone),
+                *[normalize(a) for a in c.aliases.split(",")],
+            ]
             or query in normalize(c.name).split()
         ]
     if len(files) != 1 or len(contacts) != 1:
         return {
             "action": "clarify",
+            "channel": channel,
             "files": files,
             "contacts": contacts,
             "message": "Choose the exact file and contact below. Pronouns need an explicitly saved context.",
         }
-    return {"action": "send", "version": files[0], "contact": contacts[0]}
+    return {"action": "send", "version": files[0], "contact": contacts[0], "channel": channel}

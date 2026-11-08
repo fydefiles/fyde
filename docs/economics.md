@@ -2,7 +2,7 @@
 
 The $0 / $5 / $20 prices and 10 / 500 / unlimited file-send allowances are provisional. No willingness-to-pay or contribution-margin validation has occurred.
 
-A send is one immutable version accepted by a delivery provider for one recipient. Searches, denials, idempotent retries and repeat access do not add sends. Terminal provider failure reverses one consumed unit. Unknown outcomes remain reserved. Local adapter usage belongs to a fixture ledger, separate from live periods.
+A send is one immutable version made available in a verified recipient’s Fyde inbox or accepted by an external delivery provider for one recipient. These events share one transfer and one consumed unit. Searches, denials, idempotent retries and repeat access do not add sends. Terminal provider failure reverses one consumed unit only if the file was never received in the app or accessed. Unknown outcomes remain reserved. Local adapter usage belongs to a fixture ledger, separate from live periods.
 
 | Plan | Monthly price | Send units | Storage | Download bandwidth | File size | Included external-model budget |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -16,6 +16,7 @@ For a cohort and observation window, calculate:
 
 ```text
 attributable cost = provider-accepted emails × observed email cost
+                 + SMS segments × observed destination/carrier cost
                  + delivered bytes × observed egress rate
                  + storage-byte time × observed storage rate
                  + extraction and model cost
@@ -30,6 +31,8 @@ Sensitivity examples use the configured file sizes and quota only, with no assum
 
 - Ten 25 MiB sends to one recipient, downloaded once each, move 250 MiB. Verification and reminder emails add email cost beyond the transfer message itself.
 - Five hundred 25 MiB sends, downloaded once each, move 12,500 MiB, approximately 12.21 GiB. This alone does not establish that $5 covers costs. Repeat downloads can approach the separate 20 GiB allowance.
-- Unlimited file count can produce many small sends and high email cost even below its 100 GiB bandwidth allowance. A company-wide email budget can pause sending, but the advertised file-count allowance must remain unlimited. An exhausted safety budget must be displayed as a service pause, not a disguised plan quota.
+- Unlimited file count can produce many small sends and high optional email/SMS cost even below its 100 GiB bandwidth allowance. Separate email/SMS budgets can pause external notifications while native app delivery remains available, but the advertised file-count allowance must remain unlimited. An exhausted safety budget must be displayed as a service pause, not a disguised plan quota.
 
 `EMAIL_UNIT_COST_USD` is an operator estimate used to reserve budget before a live provider call. Actual email cost stays unknown until reconciled. Naïve's observed session micro-USD is recorded separately from its reserved task cap. No cost rate, live receipt, conversion or profit is fabricated.
+
+Native inbox delivery has no message-provider charge; database, storage and egress costs still apply. `SMS_UNIT_COST_USD` is a conservative operator estimate per segment, including carrier/destination charges. The worker caps bodies at 480 characters and reserves Unicode multipart segments (67 characters per segment beyond 70) even for ASCII. A daily count limit covers messages; a separate USD cap covers segment estimates. SMS costs remain unknown until invoice reconciliation. No default SMS price or margin is assumed.

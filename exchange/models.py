@@ -4,6 +4,8 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
 
+DELIVERY_CHANNELS = [("in_app", "Fyde"), ("email", "Email"), ("phone", "Phone (SMS)")]
+
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
@@ -11,6 +13,19 @@ class User(AbstractUser):
     sharing_paused = models.BooleanField(default=False)
     data_mode = models.CharField(max_length=12, default="live")
     notifications_enabled = models.BooleanField(default=True)
+    default_delivery_channel = models.CharField(max_length=20, choices=DELIVERY_CHANNELS, default="in_app")
+    phone = models.CharField(max_length=16, blank=True)
+    phone_verified_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "user"
+        verbose_name_plural = "users"
+        abstract = False
+        constraints = [
+            models.UniqueConstraint(
+                fields=["phone"], condition=~models.Q(phone=""), name="unique_account_phone"
+            )
+        ]
 
 
 class Record(models.Model):
@@ -24,14 +39,23 @@ class Record(models.Model):
 class Contact(Record):
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=120)
-    email = models.EmailField()
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=16, blank=True)
+    phone_verified_at = models.DateTimeField(null=True, blank=True)
     aliases = models.CharField(max_length=250, blank=True)
     endpoint_revision = models.PositiveIntegerField(default=1)
     verified_at = models.DateTimeField(null=True, blank=True)
     paused = models.BooleanField(default=False)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["owner", "email"], name="contact_owner_email")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["owner", "email"], condition=~models.Q(email=""), name="contact_owner_email"
+            ),
+            models.UniqueConstraint(
+                fields=["owner", "phone"], condition=~models.Q(phone=""), name="contact_owner_phone"
+            ),
+        ]
 
     def __str__(self):
         return self.name
@@ -79,7 +103,8 @@ class Grant(Record):
     revoked_at = models.DateTimeField(null=True, blank=True)
     max_requests = models.PositiveIntegerField(default=1)
     requests_used = models.PositiveIntegerField(default=0)
-    channel = models.CharField(max_length=20, default="email")
+    channel = models.CharField(max_length=20, choices=DELIVERY_CHANNELS, default="in_app")
+    identity_kind = models.CharField(max_length=10, default="email")
 
 
 class Subscription(Record):
@@ -118,6 +143,9 @@ class Transfer(Record):
     grant = models.ForeignKey(Grant, on_delete=models.CASCADE)
     operation_id = models.CharField(max_length=100)
     recipient_email = models.EmailField(default="")
+    recipient_phone = models.CharField(max_length=16, blank=True)
+    channel = models.CharField(max_length=20, choices=DELIVERY_CHANNELS, default="in_app")
+    binding_version = models.PositiveSmallIntegerField(default=2)
     endpoint_revision_snapshot = models.PositiveIntegerField(default=1)
     binding = models.CharField(max_length=64)
     status = models.CharField(max_length=40, default="queued")
@@ -151,7 +179,8 @@ class UsageEntry(Record):
 class Mail(Record):
     owner = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
     transfer = models.OneToOneField(Transfer, null=True, blank=True, on_delete=models.CASCADE)
-    destination = models.EmailField()
+    destination = models.CharField(max_length=254)
+    channel = models.CharField(max_length=10, default="email", choices=[("email", "Email"), ("phone", "SMS")])
     subject = models.CharField(max_length=200)
     body = models.TextField()
     idempotency_key = models.CharField(max_length=150, unique=True)
@@ -173,11 +202,20 @@ class EmailBudget(Record):
     reserved_usd = models.DecimalField(max_digits=12, decimal_places=6, default=0)
 
 
+class PhoneBudget(Record):
+    date = models.DateField(unique=True)
+    reserved_count = models.PositiveIntegerField(default=0)
+    reserved_usd = models.DecimalField(max_digits=12, decimal_places=6, default=0)
+
+
 class Challenge(Record):
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
     contact = models.ForeignKey(Contact, null=True, blank=True, on_delete=models.CASCADE)
     transfer = models.ForeignKey(Transfer, null=True, blank=True, on_delete=models.CASCADE)
     scope = models.CharField(max_length=20)
+    channel = models.CharField(max_length=10, default="email")
+    destination = models.CharField(max_length=254, blank=True)
+    data_mode = models.CharField(max_length=12, default="live")
     token_hash = models.CharField(max_length=64)
     code_hash = models.CharField(max_length=128)
     endpoint_revision = models.PositiveIntegerField(default=0)
@@ -233,6 +271,11 @@ class Notification(Record):
     body = models.CharField(max_length=500)
     link = models.CharField(max_length=250, blank=True)
     read_at = models.DateTimeField(null=True, blank=True)
+
+
+class InboxItem(Record):
+    recipient = models.ForeignKey(User, on_delete=models.PROTECT, related_name="received_files")
+    transfer = models.OneToOneField(Transfer, on_delete=models.CASCADE, related_name="inbox_item")
 
 
 class FeedbackBridge(Record):

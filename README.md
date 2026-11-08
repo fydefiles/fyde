@@ -2,7 +2,7 @@
 
 Fyde finds and shares files with known contacts. A trusted backend binds each send to a verified recipient, an exact immutable version, a permission, an operation ID, and an expiry. Company workflows use a separate database and sanitized inputs.
 
-The repository was empty on November 7, 2026. This implementation uses Django 5.2 LTS, PostgreSQL for production and SQLite for local development, private filesystem storage, and durable database jobs. The application is usable locally. Live email, billing, Naïve, Reddit, Instagram, and hosted deployment require the accounts and controls listed in [product.md](product.md).
+The repository was empty on November 7, 2026. This implementation uses Django 5.2 LTS, PostgreSQL for production and SQLite for local development, private filesystem storage, and durable database jobs. The application is usable locally. Live email/SMS, billing, Naïve, Reddit, Instagram, and hosted deployment require the accounts and controls listed in [product.md](product.md).
 
 ## Run locally
 
@@ -22,13 +22,16 @@ Defaults need no external credentials. An optional `.env` can copy `.env.example
 
 ## Try the complete workflow
 
-1. Sign in. Open the sender-verification message in the local outbox and enter its six-digit code.
-2. Upload `artifacts/synthetic-resume.txt` with a title such as “My résumé.” The customer worker validates and indexes it.
-3. Add John with a synthetic email such as `john@example.test`. Open the contact-verification message and enter its code.
-4. Type `Send my résumé to John`. Inspect the receipt and the exact version, destination, quota state, and fixture identifier.
-5. Open the transfer link from the outbox. It reveals no document until you request and complete separate recipient verification. Download and compare the original bytes.
-6. Revoke the transfer. Previously downloaded copies remain outside Fyde's control; future downloads fail.
-7. For automatic requests, create a standing permission for a verified contact, exact version, purpose, expiry, and request limit. Use the contact's request link, verify that email, and request permitted versions. A different purpose, version, or endpoint is unavailable.
+1. Create a sender account and a separate recipient account. Verify each account email using its local test outbox.
+2. Upload `artifacts/synthetic-resume.txt` as “My résumé.” The customer worker validates and indexes it.
+3. Add John using the recipient account’s verified email. No message is sent merely for adding this contact.
+4. Type `Send my résumé to John`. Fyde is the default channel. The receipt records `available_in_app`, the exact version and one consumed send.
+5. Sign in as John and open **Received**. Download and compare the original bytes. A forwarded transfer link cannot unlock the file for another account.
+6. Choose **Email** or say `Send my résumé to John by email` to queue a recipient-bound download link. Unknown recipients must first verify the contact endpoint. The guest verifies that endpoint again before downloading inside Fyde. A matching verified account also receives the file in **Received**.
+7. Optional **Phone (SMS)** sends the same kind of link to a verified phone. SMS is disconnected by default; set `SMS_ADAPTER=local` for a labeled test outbox. Link and verify the recipient’s own phone in Settings to receive phone-addressed files in their account. Live SMS needs the separate setup in the runbook.
+8. Revoke a transfer to block future downloads. Existing downloads cannot be recalled. Standing permissions also bind the exact channel, endpoint, purpose, expiry and request limit. The contact’s request link supports matching account sign-in or email/phone verification.
+
+The channel selector applies to each send; Settings saves a default. Explicit command suffixes override the selector. A successful app delivery consumes one unit immediately, with no email/SMS provider dependency. Optional notification failure does not reverse a file already received. Repeated downloads only debit bandwidth. Receiving is free and uses the original owner’s version and permissions; it does not copy the document into the recipient’s owned files.
 
 The command resolver currently supports bounded English `find`, `send`, `share`, and `email` commands. It normalizes résumé/resume and handles matching contact aliases. Ambiguity requires a choice. Pronouns require explicitly saved, 15-minute app context. No external language model receives customer documents. General semantic conversation, voice, local folders, and wearable integrations remain future work.
 

@@ -1,0 +1,169 @@
+{
+  "mode": "local iOS simulator with isolated synthetic fixtures; no live email/SMS or customer files",
+  "at_utc": "2026-11-08T03:17:11.817680+00:00",
+  "tested_code_revision": "8b4e9a9d44e430da9236e4e8e40581ca0788fc9f",
+  "runtime": "iOS 26.0 (23A343), Apple arm64 runtime",
+  "device": "iPhone 17 Pro",
+  "device_uuid": "C5C76123-8083-441E-9115-7238F8E34CE4",
+  "test_driver": "Native Device Hub UI via computer use; database/file reads verify receipts and exact bytes",
+  "initial_accounts": [
+    {
+      "role": "owner",
+      "user_id": 6,
+      "email": "native-qa-owner@example.test",
+      "data_mode": "fixture",
+      "verification": "explicitly seeded fixture verification; not live email",
+      "onboarding_completed": false,
+      "owned_files": 0,
+      "contacts": 0,
+      "owned_case_permissions": 0,
+      "active_credentials": 0
+    },
+    {
+      "role": "lawyer",
+      "user_id": 7,
+      "email": "native-qa-lawyer@example.test",
+      "data_mode": "fixture",
+      "verification": "explicitly seeded fixture verification; not live email",
+      "onboarding_completed": false,
+      "owned_files": 0,
+      "contacts": 0,
+      "owned_case_permissions": 0,
+      "active_credentials": 0
+    }
+  ],
+  "input_preparation": {
+    "method": "Synthetic inputs copied into the simulator local Files provider before UI import; Safari downloads were private to Safari. App upload still uses the native document picker.",
+    "files": [
+      {
+        "name": "synthetic-passport.txt",
+        "sha256": "9e5f9729411b05990776a991b836d7e4373e7018243b0e471c79a74ab9718bc2",
+        "bytes": 133
+      },
+      {
+        "name": "synthetic-immigration-note.txt",
+        "sha256": "beeccc813836ec6a9313dca31f7955f1f6baed4f3cf312c295eae733b9cfd989",
+        "bytes": 129
+      }
+    ]
+  },
+  "verified_steps": [
+    "Native sign-in and secure session restoration after app restart",
+    "First-use onboarding without a bottom Setup tab",
+    "Create case and import both files using the real iOS document picker and authenticated upload",
+    "Add verified fixture lawyer relationship and explicitly enable bounded standing permission",
+    "Finish onboarding into Chat; change passport type through a chat review card",
+    "Find my passport, then Send it to my lawyer; in-app receipt",
+    "Search icon opens a separate field/results page; upper-right profile opens account",
+    "Owner signs out; zero active owner device credentials before recipient request",
+    "Recipient signs in, finishes first-use setup and requests passport for Immigration case",
+    "Standing permission automatically releases exact version without owner session or another approval",
+    "Received download opens native share sheet; Save to Files completes",
+    "Native cache and Files export match source/version SHA-256",
+    "Recipient owned-file Search excludes owner catalog and clears previous search",
+    "Fresh layout-only fixture confirms empty chat welcome remains visible"
+  ],
+  "owner_active_devices_before_request": 0,
+  "owner_reauthenticated_for_handoff": true,
+  "versions": [
+    {
+      "id": "8ea8058f-8933-483b-bb27-10e34a1558ea",
+      "original_name": "synthetic-passport.txt",
+      "sha256": "9e5f9729411b05990776a991b836d7e4373e7018243b0e471c79a74ab9718bc2",
+      "size": 133,
+      "state": "ready",
+      "document__document_type": "passport",
+      "document__sensitive": true
+    },
+    {
+      "id": "bacad897-8f48-4d64-b82b-61141f829df9",
+      "original_name": "synthetic-immigration-note.txt",
+      "sha256": "beeccc813836ec6a9313dca31f7955f1f6baed4f3cf312c295eae733b9cfd989",
+      "size": 129,
+      "state": "ready",
+      "document__document_type": "general",
+      "document__sensitive": true
+    }
+  ],
+  "case_permissions": [
+    {
+      "id": "3d47258c-9f18-4997-990c-af0053d9d946",
+      "document_types": [
+        "*"
+      ],
+      "include_future_files": true,
+      "include_future_versions": true,
+      "include_sensitive": true,
+      "max_requests": 100,
+      "requests_used": 1,
+      "channel": "in_app"
+    }
+  ],
+  "requests": [
+    {
+      "id": "b6fee570-d9b3-47d2-ae30-11599cd78d1f",
+      "policy_id": "3d47258c-9f18-4997-990c-af0053d9d946",
+      "result": {
+        "request_id": "b6fee570-d9b3-47d2-ae30-11599cd78d1f",
+        "outcomes": [
+          {
+            "transfer_id": "5957ba68-3888-4fd5-8473-4eca3fa63a6f",
+            "state": "available_in_app"
+          }
+        ],
+        "next_cursor": null,
+        "message": "The owner\u2019s case permission was applied automatically."
+      }
+    }
+  ],
+  "transfers": [
+    {
+      "id": "c660efad-d37c-4e37-bff1-ce181c8c5bd5",
+      "channel": "in_app",
+      "status": "available_in_app",
+      "accessed_at": null,
+      "grant__standing_policy_id": "3d47258c-9f18-4997-990c-af0053d9d946",
+      "quota_state": "consumed",
+      "data_mode": "fixture"
+    },
+    {
+      "id": "5957ba68-3888-4fd5-8473-4eca3fa63a6f",
+      "channel": "in_app",
+      "status": "accessed",
+      "accessed_at": "2026-11-08 03:13:24.523512+00:00",
+      "grant__standing_policy_id": "3d47258c-9f18-4997-990c-af0053d9d946",
+      "quota_state": "consumed",
+      "data_mode": "fixture"
+    }
+  ],
+  "usage": [
+    {
+      "consumed": 2,
+      "reserved": 0,
+      "bandwidth_used": 266,
+      "bandwidth_reserved": 0,
+      "data_mode": "fixture"
+    }
+  ],
+  "exported_file": {
+    "name": "synthetic-passport.txt",
+    "bytes": 133,
+    "sha256": "9e5f9729411b05990776a991b836d7e4373e7018243b0e471c79a74ab9718bc2"
+  },
+  "upload_staging_files_after_import": 0,
+  "picker_cache_files_after_import": 0,
+  "screenshots": {
+    "ios-onboarding-import.png": "318d615744429831e1b387a01993c4f9be13236d3e3a36fd18cd861f286158b8",
+    "ios-chat-send.png": "e4a6781baffb8ad7bc163af3f04171a0e252225f42cd5d575a293dc887cdbf81",
+    "ios-search-page.png": "7a092acdb4db9c5595f759783128a911b9e7510e32afc7d0fafe84d09f467cf5",
+    "ios-automatic-request.png": "7182b9f0a8ed2fc3fc33787a712fa10a13a1c8648135c45b731023a471b230ad",
+    "ios-download-export.png": "82c10e8f1699f005954e773420c57d85aa3ed40cb45d32bf90e4da706e91732d",
+    "ios-chat-home.png": "e011ae493516d26d40a383accaf12ff828bf8ccfed4bcb433ebdcfb04f99c9c1"
+  },
+  "limitations": [
+    "Two account verifications were explicitly seeded as fixtures; no real verification email was sent",
+    "Source files were prepared in the simulator Files provider before native UI import",
+    "Empty-layout fixture had onboarding marked complete only for presentation inspection; full onboarding evidence is the fresh owner workflow",
+    "Physical devices, Android native packaging, store signing, hosted deployment and live providers remain unverified"
+  ]
+}

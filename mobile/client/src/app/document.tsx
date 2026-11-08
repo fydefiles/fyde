@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { ScrollView, Text, View, Platform } from "react-native";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system/legacy";
+import { Directory, File as NativeFile, Paths } from "expo-file-system";
+import * as Crypto from "expo-crypto";
 import { call, download, restoreSession } from "../api";
 import type { FileCard } from "../types";
 import { Button, Field, styles } from "../ui";
@@ -73,19 +76,27 @@ export default function DocumentDetails() {
       const asset = picked.assets[0];
       if (asset.size && asset.size > 25 * 1024 * 1024)
         throw new Error("Choose a file up to 25 MiB.");
-      const form = new FormData();
-      if (Platform.OS === "web") {
-        if (!asset.file) throw new Error("Choose the file again.");
-        form.append("file", asset.file, asset.name);
-      } else
-        form.append("file", {
-          uri: asset.uri,
-          name: asset.name,
-          type: asset.mimeType || "application/octet-stream",
-        } as unknown as Blob);
-      form.append("document_id", id);
-      await call("/api/v1/upload/", token, "POST", form);
-      await refresh();
+      let staging: Directory | undefined;
+      try {
+        let file: Blob | undefined = asset.file;
+        if (Platform.OS !== "web") {
+          staging = new Directory(Paths.cache, "fyde-imports", Crypto.randomUUID());
+          staging.create({ intermediates: true });
+          const upload = new NativeFile(staging, asset.name.replace(/[/\\]/g, "_"));
+          await new NativeFile(asset.uri).copy(upload);
+          file = upload;
+        }
+        if (!file) throw new Error("Choose the file again.");
+        const form = new FormData();
+        form.append("file", file, asset.name);
+        form.append("document_id", id);
+        await call("/api/v1/upload/", token, "POST", form);
+        await refresh();
+      } finally {
+        if (staging) await FileSystem.deleteAsync(staging.uri, { idempotent: true }).catch(() => {});
+        if (Platform.OS !== "web" && FileSystem.cacheDirectory && asset.uri.startsWith(FileSystem.cacheDirectory))
+          await FileSystem.deleteAsync(asset.uri, { idempotent: true }).catch(() => {});
+      }
     });
   }
   return (

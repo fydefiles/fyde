@@ -30,6 +30,7 @@ import {
 import { Files, NeonObjects, type ObjectStore } from "./storage.js";
 import { Sharing } from "./sharing.js";
 import { Chat } from "./chat.js";
+import { search } from "./search.js";
 
 type Variables = { owner: Row; token: Row };
 type AppContext = Context<{ Variables: Variables }>;
@@ -390,9 +391,7 @@ export function createApp(
     const { query } = z
       .object({ query: z.string().max(180) })
       .parse(await json(c));
-    return c.json({
-      files: (await chat.search(c.get("owner"), query)).map(fileCard),
-    });
+    return c.json(await search(db, c.get("owner"), query));
   });
   app.get("/api/v1/chat/", async (c) =>
     c.json({ turns: await chat.history(c.get("owner")) }),

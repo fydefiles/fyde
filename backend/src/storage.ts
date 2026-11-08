@@ -293,6 +293,12 @@ export class Files {
         "document_id=$1",
         [id],
       );
+      // A concurrent Python indexing worker uses this same document lock. Remove its private
+      // passages and jobs in the deletion transaction and let its final deleted-state check deny publish.
+      for (const table of ["exchange_searchsegment", "exchange_searchindex"]) {
+        const [present] = await this.db.query("SELECT to_regclass($1) AS name", ["public." + table]);
+        if (present.name) await this.db.query(`DELETE FROM ${table} WHERE version_id IN (SELECT id FROM exchange_fileversion WHERE document_id=$1)`, [id]);
+      }
       await this.db.query(
         "UPDATE exchange_grant SET revoked_at=now(),revision=revision+1 WHERE version_id IN (SELECT id FROM exchange_fileversion WHERE document_id=$1) AND revoked_at IS NULL",
         [id],

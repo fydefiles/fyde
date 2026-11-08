@@ -273,9 +273,15 @@ test("private bytes, tenant isolation, exact-version sharing, idempotency and re
     "Synthetic passport record only.",
   );
   assert.equal(f.state, "quarantined");
+  assert.equal((await json("/api/v1/files/search/", a.token, { query: "passport" })).files.length, 0);
   await backend.files.process();
   const workspace = await json("/api/v1/state/", a.token);
   assert.equal(workspace.files[0].state, "ready");
+  const found = await json("/api/v1/files/search/", a.token, { query: "synthetic record" });
+  assert.equal(found.semantic_status, "disabled");
+  assert.equal(found.files[0].id, f.id);
+  assert.match(found.files[0].match.excerpt, /Synthetic passport record/);
+  assert.deepEqual((await json("/api/v1/files/search/", foreign.token, { query: "synthetic record" })).files, []);
   await json(`/api/v1/files/${f.id}/download/`, foreign.token, undefined, 404);
   const ownerDownload = await request(
     `/api/v1/files/${f.id}/download/`,

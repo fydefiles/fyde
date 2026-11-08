@@ -27,6 +27,7 @@ export default {
       return new Response("Unavailable", { status: 403 });
     try {
       const result = await worker.files.process(5);
+      console.info(JSON.stringify({ event: "file_processing", triggered, ...result, revision: process.env.RELEASE_SHA || "local" }));
       await worker.db.query(
         "DELETE FROM exchange_neonoauthattempt WHERE expires_at<now()-interval '1 day'",
       );

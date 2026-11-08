@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -68,6 +68,7 @@ function useClientContent(): Frame {
     [state, setState] = useState<Workspace | null>(null),
     [turns, setTurns] = useState<Turn[]>([]),
     [received, setReceived] = useState<FileCard[]>([]);
+  const activeSession = useRef<string | null>(null);
   const [query, setQuery] = useState("");
   const [management, setManagement] = useState<Management>({
     section: "files",
@@ -85,6 +86,7 @@ function useClientContent(): Frame {
     [agentName, setAgentName] = useState("My case assistant"),
     [agentSecret, setAgentSecret] = useState("");
   async function endSession() {
+    activeSession.current = null;
     try {
       if (token) await call("/api/v1/logout/", token, "POST", {});
     } catch {
@@ -102,6 +104,9 @@ function useClientContent(): Frame {
       setQuery("");
       setCredentials([]);
       setAgentSecret("");
+      setAgentPolicy("");
+      setAgentName("My case assistant");
+      setManagement({ section: "files" });
     }
   }
   const refresh = useCallback(
@@ -121,12 +126,18 @@ function useClientContent(): Frame {
             }[];
           }>("/api/v1/credentials/", activeToken),
         ]);
+        if (activeSession.current !== activeToken) return;
         setState(workspace);
         setTurns(conversation.turns);
         setReceived(inbox.files);
         setCredentials(keys.tokens.filter((key) => key.kind === "agent"));
       } catch (e) {
-        if (e instanceof ApiError && e.status === 401) {
+        if (
+          activeSession.current === activeToken &&
+          e instanceof ApiError &&
+          e.status === 401
+        ) {
+          activeSession.current = null;
           await persistSession(null);
           setToken(null);
           setState(null);
@@ -139,6 +150,7 @@ function useClientContent(): Frame {
   useEffect(() => {
     restoreSession()
       .then((value) => {
+        activeSession.current = value;
         setToken(value);
       })
       .catch((e) => setError(e.message))
@@ -179,6 +191,7 @@ function useClientContent(): Frame {
           : { email, password, device_name: `Fyde ${Platform.OS}` },
       );
       await persistSession(result.token);
+      activeSession.current = result.token;
       setToken(result.token);
       setPassword("");
       setTab(result.user.onboarding_complete ? "Chat" : "Setup");
@@ -582,7 +595,10 @@ function useClientContent(): Frame {
                   policy_id: agentPolicy,
                   name: agentName,
                 })
-                  .then((result) => setAgentSecret(result.token))
+                  .then((result) => {
+                    if (activeSession.current === token)
+                      setAgentSecret(result.token);
+                  })
                   .catch((e) => setError(e.message))
               }
             />

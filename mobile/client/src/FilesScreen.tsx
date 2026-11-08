@@ -174,10 +174,9 @@ export default function FilesScreen({
     if (!term) return;
     let current = true;
     const timer = setTimeout(() => {
-      call<{ files: FileCard[] }>(
-        `/api/v1/files/search/?q=${encodeURIComponent(term)}`,
-        token,
-      )
+      call<{ files: FileCard[] }>("/api/v1/files/search/", token, "POST", {
+        query: term,
+      })
         .then((value) => {
           if (current)
             setResult({ query: term, files: value.files, error: "" });

@@ -439,17 +439,19 @@ class ChatAndCaseJourney(TestCase):
             self.assertEqual(response.json()["result"]["kind"], "workspace_action")
         self.assertEqual(StandingPolicy.objects.count(), before_grants)
         self.assertEqual(Transfer.objects.count(), 0)
-        result = self.client.get(
-            "/api/v1/files/search/?q=cedar", HTTP_AUTHORIZATION=f"Bearer {self.owner_key}"
-        )
+        result = self.post("/api/v1/files/search/", {"query": "cedar"})
         self.assertEqual([f["id"] for f in result.json()["files"]], [str(version.pk)])
-        other = self.client.get(
-            "/api/v1/files/search/?q=cedar", HTTP_AUTHORIZATION=f"Bearer {self.lawyer_key}"
-        )
+        other = self.post("/api/v1/files/search/", {"query": "cedar"}, key=self.lawyer_key)
         self.assertEqual(other.json()["files"], [])
         _, agent_key = issue_token(self.lawyer, kind="agent", policy=self.policy())
-        denied = self.client.get("/api/v1/files/search/?q=cedar", HTTP_AUTHORIZATION=f"Bearer {agent_key}")
+        denied = self.post("/api/v1/files/search/", {"query": "cedar"}, key=agent_key)
         self.assertEqual(denied.status_code, 403)
+        self.assertEqual(
+            self.client.get(
+                "/api/v1/files/search/", HTTP_AUTHORIZATION=f"Bearer {self.owner_key}"
+            ).status_code,
+            405,
+        )
 
     def test_chat_contact_and_case_edits_do_not_carry_authority_to_new_endpoints(self):
         self.file()

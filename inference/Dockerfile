@@ -14,4 +14,4 @@ ENV MODEL_PATH=/opt/model HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_HUB_DISABLE
 RUN useradd --uid 10001 --no-create-home fyde
 USER 10001:10001
 EXPOSE 8080
-CMD ["gunicorn", "service:app", "--bind", "0.0.0.0:8080", "--workers", "1", "--threads", "1", "--timeout", "180", "--error-logfile", "-"]
+CMD ["gunicorn", "service:app", "--bind", "0.0.0.0:8080", "--workers", "1", "--threads", "1", "--timeout", "180", "--no-control-socket", "--error-logfile", "-"]

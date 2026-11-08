@@ -1,9 +1,12 @@
 from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth import get_user_model
+from django.conf import settings
 
 
 class EmailBackend(ModelBackend):
     def authenticate(self, request, username=None, password=None, **kwargs):
+        if settings.AUTH_PROVIDER == "neon":
+            return None
         if username is None or password is None:
             return None
         users = get_user_model().objects.filter(email__iexact=username)

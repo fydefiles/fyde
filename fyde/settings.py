@@ -7,7 +7,7 @@ from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 if os.environ.get("FYDE_LOAD_DOTENV", "1") == "1":
-    load_dotenv(BASE_DIR / ".env")
+    load_dotenv(Path(os.environ.get("FYDE_ENV_FILE", BASE_DIR / ".env")))
 VAR_DIR = Path(os.environ.get("FYDE_VAR_DIR", BASE_DIR / "var"))
 VAR_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
 DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
@@ -65,6 +65,9 @@ DATABASES = {
 for db in DATABASES.values():
     if db["ENGINE"].endswith("sqlite3"):
         db["OPTIONS"] = {"timeout": 30, "transaction_mode": "IMMEDIATE"}
+    else:
+        db["CONN_HEALTH_CHECKS"] = True
+        db["DISABLE_SERVER_SIDE_CURSORS"] = True
 DATABASE_ROUTERS = ["fyde.routers.CompanyRouter"]
 AUTH_USER_MODEL = "exchange.User"
 AUTHENTICATION_BACKENDS = ["exchange.auth.EmailBackend"]
@@ -87,6 +90,30 @@ STATIC_ROOT = (
 STATICFILES_DIRS = [BASE_DIR / "static"]
 MEDIA_ROOT = VAR_DIR / "private"
 MEDIA_ROOT.mkdir(exist_ok=True, mode=0o700)
+FILE_STORAGE = os.environ.get("FILE_STORAGE", "local")
+AUTH_PROVIDER = os.environ.get("AUTH_PROVIDER", "local")
+NEON_AUTH_BASE_URL = os.environ.get("NEON_AUTH_BASE_URL", "").rstrip("/")
+NEON_STORAGE_BUCKET = os.environ.get("NEON_STORAGE_BUCKET", "uploads")
+AWS_ENDPOINT_URL_S3 = os.environ.get("AWS_ENDPOINT_URL_S3", "")
+AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "")
+AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
+AWS_REGION = os.environ.get("AWS_REGION", "us-east-2")
+if FILE_STORAGE not in ("local", "neon") or AUTH_PROVIDER not in ("local", "neon"):
+    raise ImproperlyConfigured("Choose local or neon for FILE_STORAGE and AUTH_PROVIDER.")
+if AUTH_PROVIDER == "neon":
+    from urllib.parse import urlsplit
+
+    auth_url = urlsplit(NEON_AUTH_BASE_URL)
+    if auth_url.scheme != "https" or not auth_url.hostname or auth_url.username or auth_url.query:
+        raise ImproperlyConfigured("Set an HTTPS NEON_AUTH_BASE_URL without credentials or a query.")
+    MIDDLEWARE.insert(
+        MIDDLEWARE.index("django.contrib.auth.middleware.AuthenticationMiddleware") + 1,
+        "exchange.neon_auth.SessionMiddleware",
+    )
+if FILE_STORAGE == "neon" and not all(
+    (AWS_ENDPOINT_URL_S3.startswith("https://"), AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+):
+    raise ImproperlyConfigured("Set the Neon S3 endpoint and scoped storage credentials.")
 DATA_UPLOAD_MAX_MEMORY_SIZE = 30 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

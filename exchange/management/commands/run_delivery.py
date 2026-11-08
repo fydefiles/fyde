@@ -3,6 +3,7 @@ from django.core.management.base import BaseCommand
 from exchange.delivery import deliver_pending
 from exchange.models import FileVersion
 from exchange.storage import inspect_version
+from exchange.blobstore import purge_deleted
 
 
 class Command(BaseCommand):
@@ -16,6 +17,7 @@ class Command(BaseCommand):
             for version in FileVersion.objects.filter(state="quarantined", extraction_state="pending")[:10]:
                 inspect_version(version)
             count = deliver_pending()
+            purge_deleted()
             if options["once"]:
                 self.stdout.write(f"Processed {count} delivery jobs.")
                 return

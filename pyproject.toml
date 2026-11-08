@@ -5,6 +5,8 @@ description = "Permissioned file exchange and bounded company operations"
 requires-python = ">=3.12"
 dependencies = [
   "Django>=5.2.8,<5.3",
+  "boto3>=1.42,<2",
+  "cryptography>=46,<48",
   "dj-database-url>=3,<4",
   "gunicorn>=23,<24",
   "httpx>=0.28,<0.29",

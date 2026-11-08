@@ -31,6 +31,7 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
+    public code?: string,
   ) {
     super(message);
   }
@@ -98,6 +99,7 @@ export async function call<T>(
     throw new ApiError(
       result.message || "The operation could not be completed.",
       response.status,
+      result.error,
     );
   return result as T;
 }

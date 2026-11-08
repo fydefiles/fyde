@@ -29,6 +29,7 @@ import ChatScreen from "./src/ChatScreen";
 import SetupScreen from "./src/SetupScreen";
 import FilesScreen, { ClassificationScreen } from "./src/FilesScreen";
 import { ChatIcon, SearchIcon, ReceivedIcon } from "./src/NavigationIcons";
+import { googleSignIn, type LoginResult } from "./src/auth";
 
 type Tab = "Chat" | "Search" | "Setup" | "Received" | "Account" | "Manage";
 type Management = {
@@ -79,6 +80,9 @@ function useClientContent(): Frame {
     [signup, setSignup] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const [managedAuth, setManagedAuth] = useState(false);
+  const [verification, setVerification] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
   const [credentials, setCredentials] = useState<
     { id: string; kind: string; name: string; expires_at: string }[]
   >([]);
@@ -148,6 +152,9 @@ function useClientContent(): Frame {
     [token],
   );
   useEffect(() => {
+    call<{ provider: string }>("/api/v1/auth/config/", null)
+      .then((config) => setManagedAuth(config.provider === "neon"))
+      .catch((e) => setError(e.message));
     restoreSession()
       .then((value) => {
         activeSession.current = value;
@@ -182,20 +189,64 @@ function useClientContent(): Frame {
     setBusy(true);
     setError("");
     try {
-      const result = await call<{ token: string; user: Workspace["user"] }>(
-        signup ? "/api/v1/signup/" : "/api/v1/login/",
+      const result = await call<LoginResult>(
+        verification
+          ? "/api/v1/auth/verify/"
+          : signup
+            ? "/api/v1/signup/"
+            : "/api/v1/login/",
         null,
         "POST",
-        signup
-          ? { name, email, password }
-          : { email, password, device_name: `Fyde ${Platform.OS}` },
+        verification
+          ? { email, code: verificationCode }
+          : signup
+            ? { name, email, password }
+            : { email, password, device_name: `Fyde ${Platform.OS}` },
       );
-      await persistSession(result.token);
-      activeSession.current = result.token;
-      setToken(result.token);
-      setPassword("");
-      setTab(result.user.onboarding_complete ? "Chat" : "Setup");
-      await refresh(result.token);
+      if (result.verification_required) {
+        setVerification(true);
+        setPassword("");
+        return;
+      }
+      if (result.sign_in_required) {
+        setVerification(false);
+        setSignup(false);
+        setVerificationCode("");
+        setError("Email verified. Sign in with your password.");
+        return;
+      }
+      await acceptLogin(result);
+    } catch (e) {
+      if (e instanceof ApiError && e.code === "email_verification_required") {
+        setVerification(true);
+        setPassword("");
+        await call("/api/v1/auth/send-code/", null, "POST", { email }).catch(
+          () => {},
+        );
+      }
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function acceptLogin(result: LoginResult) {
+    if (!result.token || !result.user)
+      throw new Error("Sign-in did not finish. Please retry.");
+    await persistSession(result.token);
+    activeSession.current = result.token;
+    setToken(result.token);
+    setPassword("");
+    setVerification(false);
+    setVerificationCode("");
+    setTab(result.user.onboarding_complete ? "Chat" : "Setup");
+    await refresh(result.token);
+  }
+  async function loginWithGoogle() {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await acceptLogin(await googleSignIn());
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -257,45 +308,112 @@ function useClientContent(): Frame {
           </Text>
           <Text style={ui.eyebrow}>FILES, A CONVERSATION AWAY</Text>
           <Text style={ui.heading}>
-            {signup
-              ? "Make room for\nyour important files."
-              : "Your files are\nright here."}
+            {verification
+              ? "Verify your email."
+              : signup
+                ? "Make room for\nyour important files."
+                : "Your files are\nright here."}
           </Text>
           <Text style={ui.sub}>
-            {signup
-              ? "Start privately. Set up your files and relationships after creating your account."
-              : "Sign in to chat with your files and receive documents."}
+            {verification
+              ? `Enter the code sent to ${email}.`
+              : signup
+                ? "Start privately. Set up your files and relationships after creating your account."
+                : "Sign in to chat with your files and receive documents."}
           </Text>
           {!!error && (
             <Text style={ui.error} accessibilityRole="alert">
               {error}
             </Text>
           )}
-          {signup && (
+          {signup && !verification && (
             <Field label="Your name" value={name} onChangeText={setName} />
           )}
-          <Field
-            label="Email address"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
-          />
-          <Field
-            label="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoComplete={signup ? "new-password" : "current-password"}
-          />
+          {!verification && (
+            <Field
+              label="Email address"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoComplete="email"
+            />
+          )}
+          {verification ? (
+            <Field
+              label="Verification code"
+              value={verificationCode}
+              onChangeText={setVerificationCode}
+              keyboardType="number-pad"
+              autoComplete="one-time-code"
+            />
+          ) : (
+            <Field
+              label="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              autoComplete={signup ? "new-password" : "current-password"}
+            />
+          )}
           <Button
             title={
-              busy ? "Connecting…" : signup ? "Create account →" : "Sign in →"
+              busy
+                ? "Connecting…"
+                : verification
+                  ? "Verify email →"
+                  : signup
+                    ? "Create account →"
+                    : "Sign in →"
             }
-            disabled={busy || !email || !password || (signup && !name)}
+            disabled={
+              busy ||
+              (verification
+                ? !verificationCode
+                : !email || !password || (signup && !name))
+            }
             onPress={login}
           />
+          {managedAuth && !verification && (
+            <>
+              <Button
+                title="Continue with Google"
+                secondary
+                disabled={busy}
+                onPress={loginWithGoogle}
+              />
+              <Button
+                title="Forgot your password?"
+                secondary
+                disabled={busy}
+                onPress={() =>
+                  Linking.openURL(API_ROOT + "/auth/reset-password/").catch(
+                    (e) => setError(e.message),
+                  )
+                }
+              />
+            </>
+          )}
+          {verification && (
+            <Button
+              title="Send a new code"
+              secondary
+              disabled={busy}
+              onPress={async () => {
+                setBusy(true);
+                setError("");
+                try {
+                  await call("/api/v1/auth/send-code/", null, "POST", {
+                    email,
+                  });
+                } catch (e) {
+                  setError((e as Error).message);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            />
+          )}
           <Button
             title={
               signup
@@ -305,6 +423,8 @@ function useClientContent(): Frame {
             secondary
             onPress={() => {
               setSignup(!signup);
+              setVerification(false);
+              setVerificationCode("");
               setError("");
             }}
           />

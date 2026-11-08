@@ -20,6 +20,8 @@ Open http://127.0.0.1:8000. Create your own account or use the local fixture ope
 
 Defaults need no external credentials. An optional `.env` can copy `.env.example`. Local messages appear in **Open outbox**, never a real mailbox. The outbox is disabled outside development. A real provider must produce a real acceptance ID before the product claims provider acceptance.
 
+For the Neon-backed runtime, follow [the Neon setup](docs/neon.md). It connects separate customer and company Postgres projects, private object storage, and managed email/password plus Google authentication. Local fixture mode remains available for development and tests.
+
 ## Try the complete workflow
 
 1. Create a sender account and a separate recipient account. Verify each account email using its local test outbox.

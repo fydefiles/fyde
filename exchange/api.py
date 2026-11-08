@@ -52,7 +52,7 @@ def operation(data):
         ) from None
 
 
-def api(methods=("GET",), kinds=("device",), public=False):
+def api(methods=("GET",), kinds=("device",), public=False, *, validate_provider=True):
     def decorate(fn):
         @csrf_exempt
         @wraps(fn)
@@ -71,7 +71,9 @@ def api(methods=("GET",), kinds=("device",), public=False):
                 else:
                     if not public:
                         request.customer_token = authenticate_token(
-                            request.headers.get("Authorization", ""), kinds
+                            request.headers.get("Authorization", ""),
+                            kinds,
+                            validate_provider=validate_provider,
                         )
                         request.user = request.customer_token.owner
                         rate_limit(f"customer-api:{request.customer_token.pk}", 180, 60)
@@ -83,7 +85,9 @@ def api(methods=("GET",), kinds=("device",), public=False):
                     )
             except PolicyError as error:
                 status = (
-                    401
+                    503
+                    if error.code in ("auth_unavailable", "storage_unavailable")
+                    else 401
                     if error.code == "authentication_required"
                     else 429
                     if error.code == "rate_limited"
@@ -210,6 +214,11 @@ def sign_in(request):
     data = body(request)
     rate_limit(f"mobile-login:{request.META.get('REMOTE_ADDR', '')}", 15, 900)
     email = str(data.get("email", ""))[:254]
+    from . import neon_auth
+
+    if neon_auth.enabled():
+        session = neon_auth.sign_in(email, str(data.get("password", "")))
+        return managed_login_result(session, str(data.get("device_name", "Mobile device")))
     user = authenticate(request, username=email, password=str(data.get("password", "")))
     if not user:
         raise PolicyError("authentication_required", "The email or password is incorrect.")
@@ -219,6 +228,32 @@ def sign_in(request):
 
 @api(("POST",), public=True)
 def sign_up(request):
+    from . import neon_auth
+
+    if neon_auth.enabled():
+        from .auth_views import SignupForm as ManagedSignupForm
+
+        data = body(request)
+        rate_limit(f"neon-api-signup:{request.META.get('REMOTE_ADDR', '')}", 5, 3600)
+        form = ManagedSignupForm(
+            {
+                "email": data.get("email"),
+                "first_name": data.get("name"),
+                "password1": data.get("password"),
+                "password2": data.get("password"),
+            }
+        )
+        if not form.is_valid():
+            return JsonResponse(
+                {
+                    "error": "invalid_signup",
+                    "message": " ".join(str(e) for errors in form.errors.values() for e in errors),
+                },
+                status=400,
+            )
+        email = form.cleaned_data["email"].lower()
+        session = neon_auth.sign_up(form.cleaned_data["first_name"], email, form.cleaned_data["password1"])
+        return managed_login_result(session) if session else {"verification_required": True, "email": email}
     from .forms import SignupForm
     import uuid
 
@@ -250,12 +285,122 @@ def sign_up(request):
     return {"token": raw, "expires_at": token.expires_at.isoformat(), "user": profile(user)}
 
 
-@api(("POST",))
+@api(("POST",), validate_provider=False)
 def sign_out(request):
     token = request.customer_token
+    if token.neon_session_id:
+        from . import neon_auth
+
+        upstream_signed_out = neon_auth.sign_out(token.neon_session)
+    else:
+        upstream_signed_out = None
     token.revoked_at = timezone.now()
     token.save(update_fields=["revoked_at"])
-    return {"signed_out": True}
+    return {"signed_out": True, "provider_signed_out": upstream_signed_out}
+
+
+def managed_login_result(session, name="Mobile device"):
+    token, raw = issue_token(session.owner, name=name, neon_session=session)
+    return {"token": raw, "expires_at": token.expires_at.isoformat(), "user": profile(session.owner)}
+
+
+@api(public=True)
+def auth_config(request):
+    from . import neon_auth
+
+    return {
+        "provider": settings.AUTH_PROVIDER,
+        "google": neon_auth.enabled(),
+        "email_verification": neon_auth.enabled(),
+    }
+
+
+@api(("POST",), public=True)
+def auth_verify(request):
+    from . import neon_auth
+
+    data = body(request)
+    rate_limit(f"neon-api-verify:{request.META.get('REMOTE_ADDR', '')}", 10, 900)
+    session = neon_auth.verify_email(str(data.get("email", ""))[:254], str(data.get("code", ""))[:12])
+    return managed_login_result(session) if session else {"verified": True, "sign_in_required": True}
+
+
+@api(("POST",), public=True)
+def auth_send_code(request):
+    from . import neon_auth
+
+    rate_limit(f"neon-api-resend:{request.META.get('REMOTE_ADDR', '')}", 5, 900)
+    neon_auth.send_code(str(body(request).get("email", ""))[:254])
+    return {"message": "If verification is available for this email, a code is on its way."}
+
+
+@api(("POST",), public=True)
+def auth_google_start(request):
+    import re
+    from datetime import timedelta
+    from urllib.parse import urlencode
+    from django.core import signing
+    from . import neon_auth
+    from .models import NeonOAuthAttempt
+
+    if not neon_auth.enabled():
+        raise PolicyError("auth_unavailable", "Google sign-in is not configured.")
+    rate_limit(f"neon-api-google:{request.META.get('REMOTE_ADDR', '')}", 15, 900)
+    data = body(request)
+    challenge = str(data.get("code_challenge", ""))
+    redirect_uri = str(data.get("redirect_uri", ""))
+    allowed = {
+        "fyde://auth/callback",
+        *(origin + "/auth/callback" for origin in settings.CUSTOMER_API_ORIGINS),
+    }
+    if not re.fullmatch(r"[A-Za-z0-9_-]{43}", challenge) or redirect_uri not in allowed:
+        raise PolicyError("invalid_request", "Use the configured Fyde callback and an S256 challenge.")
+    attempt = NeonOAuthAttempt.objects.create(
+        code_challenge=challenge, redirect_uri=redirect_uri, expires_at=timezone.now() + timedelta(minutes=5)
+    )
+    ticket = signing.dumps(str(attempt.pk), salt="neon-mobile-oauth")
+    return {
+        "attempt": str(attempt.pk),
+        "url": settings.SITE_URL + "/auth/google/start/?" + urlencode({"ticket": ticket}),
+    }
+
+
+@api(("POST",), public=True)
+def auth_google_exchange(request):
+    import base64
+    import hashlib
+    import re
+    import secrets
+    from . import neon_auth
+    from .models import NeonOAuthAttempt
+
+    data = body(request)
+    rate_limit(f"neon-api-exchange:{request.META.get('REMOTE_ADDR', '')}", 30, 900)
+    verifier = str(data.get("code_verifier", ""))
+    if not re.fullmatch(r"[A-Za-z0-9._~-]{43,128}", verifier):
+        raise PolicyError("authentication_required", "The sign-in proof is invalid. Start again.")
+    challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip("=")
+    with transaction.atomic():
+        attempt = (
+            NeonOAuthAttempt.objects.select_for_update(of=("self",))
+            .select_related("session__owner")
+            .filter(pk=data.get("attempt"), expires_at__gt=timezone.now(), consumed_at=None)
+            .first()
+        )
+        if (
+            not attempt
+            or not attempt.session_id
+            or not attempt.code_hash
+            or not secrets.compare_digest(attempt.code_challenge, challenge)
+            or not secrets.compare_digest(
+                attempt.code_hash, hashlib.sha256(str(data.get("code", "")).encode()).hexdigest()
+            )
+        ):
+            raise PolicyError("authentication_required", "Sign-in expired or was already used. Start again.")
+        neon_auth.validate_session(attempt.session)
+        attempt.consumed_at = timezone.now()
+        attempt.save(update_fields=["consumed_at"])
+        return managed_login_result(attempt.session, str(data.get("device_name", "Mobile device")))
 
 
 @api()
@@ -318,6 +463,10 @@ def preferences(request):
 
 @api(("POST",))
 def verify_email(request):
+    from . import neon_auth
+
+    if neon_auth.enabled():
+        return {"message": "Your email is verified through Neon."}
     issue_challenge(request.user, "owner")
     return {"message": "Verification email queued. Open its link, then refresh your account in the app."}
 

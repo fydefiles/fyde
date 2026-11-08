@@ -46,6 +46,10 @@ ACTIONS = {
         "Release boundary and deployment controls",
         "Approve content/help.json-only automatic development releases. Protect dev with integration and release-boundary checks and required review for protected code. Configure a separate release GitHub App token, immutable verifier image, deployment environment and hosted smoke identity. Keep main promotion operator-requested. Activate COMPANY_RELEASE_ENABLED only after these controls exist.",
     ),
+    "F14": (
+        "Optional SMS delivery activation",
+        "Authorize a Twilio sender and destination-specific registrations. In the customer worker secret store configure SMS_ADAPTER=twilio, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, E.164 SMS_FROM, HTTPS SITE_URL, positive SMS_UNIT_COST_USD per segment including carrier charges, SMS_DAILY_BUDGET_USD and SMS_DAILY_LIMIT. Verify one consent-safe phone verification, send and download. Native delivery between verified accounts is independent of SMS activation. Never give these keys to company agents.",
+    ),
     "F11": (
         "Optional device and wearable access",
         "Local folders, personal messaging, voice, and Vexo require their own documented permissioned adapters. They are not implemented or claimed.",

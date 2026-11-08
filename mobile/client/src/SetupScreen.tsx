@@ -2,18 +2,32 @@ import React, { useState, useRef } from "react";
 import { View, Text, ScrollView, Platform } from "react-native";
 import * as Picker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
+import { Directory, File as NativeFile, Paths } from "expo-file-system";
 import * as Crypto from "expo-crypto";
 import type { Workspace } from "./types";
 import { Button, Choices, Field, Toggle, styles as s, C } from "./ui";
+import { ContactEditor, CaseEditor } from "./WorkspaceEditors";
 
 type Props = {
   state: Workspace;
   mutate: <T>(path: string, data: unknown) => Promise<T>;
   finish: () => void;
+  onboarding?: boolean;
+  initialStep?: "files" | "people" | "permissions";
+  initialMatter?: string;
+  initialContact?: string;
 };
-export default function SetupScreen({ state, mutate, finish }: Props) {
-  const [step, setStep] = useState("files"),
-    [matter, setMatter] = useState(""),
+export default function SetupScreen({
+  state,
+  mutate,
+  finish,
+  onboarding = true,
+  initialStep = "files",
+  initialMatter = "",
+  initialContact = "",
+}: Props) {
+  const [step, setStep] = useState<string>(initialStep),
+    [matter, setMatter] = useState(initialMatter),
     [matterName, setMatterName] = useState(""),
     [type, setType] = useState("general"),
     [sensitive, setSensitive] = useState(false);
@@ -21,7 +35,7 @@ export default function SetupScreen({ state, mutate, finish }: Props) {
     [email, setEmail] = useState(""),
     [phone, setPhone] = useState(""),
     [relationship, setRelationship] = useState(""),
-    [contact, setContact] = useState("");
+    [contact, setContact] = useState(initialContact);
   const [types, setTypes] = useState(["*"]),
     [futureFiles, setFutureFiles] = useState(true),
     [futureVersions, setFutureVersions] = useState(true),
@@ -65,20 +79,24 @@ export default function SetupScreen({ state, mutate, finish }: Props) {
       for (let i = 0; i < chosen.assets.length; i++) {
         const asset = chosen.assets[i];
         setNotice(`Uploading ${i + 1}/${chosen.assets.length}: ${asset.name}`);
-        const data = new FormData();
-        data.append(
-          "file",
-          asset.file ||
-            ({
-              uri: asset.uri,
-              name: asset.name,
-              type: asset.mimeType || "application/octet-stream",
-            } as unknown as Blob),
-        );
-        data.append("matter_id", matter);
-        data.append("document_type", type);
-        data.append("sensitive", String(sensitive));
+        let staging: Directory | undefined;
         try {
+          // Expo fetch accepts File Blobs, not React Native's older URI object.
+          // A short-lived named copy preserves the picker's original filename.
+          let file: Blob | undefined = asset.file;
+          if (Platform.OS !== "web") {
+            staging = new Directory(Paths.cache, "fyde-imports", Crypto.randomUUID());
+            staging.create({ intermediates: true });
+            const upload = new NativeFile(staging, asset.name.replace(/[/\\]/g, "_"));
+            await new NativeFile(asset.uri).copy(upload);
+            file = upload;
+          }
+          if (!file) throw new Error("Choose this file again to upload it.");
+          const data = new FormData();
+          data.append("file", file, asset.name);
+          data.append("matter_id", matter);
+          data.append("document_type", type);
+          data.append("sensitive", String(sensitive));
           await mutate("/api/v1/upload/", data);
           setProgress((old) => [
             ...old,
@@ -90,6 +108,11 @@ export default function SetupScreen({ state, mutate, finish }: Props) {
             `${asset.name} · ${(e as Error).message}`,
           ]);
         } finally {
+          if (staging) {
+            await FileSystem.deleteAsync(staging.uri, { idempotent: true }).catch(
+              () => {},
+            );
+          }
           if (
             Platform.OS !== "web" &&
             FileSystem.cacheDirectory &&
@@ -112,18 +135,30 @@ export default function SetupScreen({ state, mutate, finish }: Props) {
       contentContainerStyle={s.body}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={s.eyebrow}>WORKSPACE SETUP</Text>
-      <Text style={s.heading}>Set up your{`\n`}workspace.</Text>
-      <Choices
-        label="Setup step"
-        value={step}
-        onChange={setStep}
-        items={[
-          { id: "files", name: "1 · Files" },
-          { id: "people", name: "2 · People" },
-          { id: "permissions", name: "3 · Automatic sharing" },
-        ]}
-      />
+      <Text style={s.eyebrow}>
+        {onboarding ? "WELCOME TO FYDE" : "FROM YOUR CONVERSATION"}
+      </Text>
+      <Text style={s.heading}>
+        {onboarding
+          ? "Set up your\nworkspace."
+          : step === "files"
+            ? "Add your files."
+            : step === "people"
+              ? "Your people."
+              : "Review automatic\nsharing."}
+      </Text>
+      {onboarding && (
+        <Choices
+          label="Setup step"
+          value={step}
+          onChange={setStep}
+          items={[
+            { id: "files", name: "1 · Files" },
+            { id: "people", name: "2 · People" },
+            { id: "permissions", name: "3 · Automatic sharing" },
+          ]}
+        />
+      )}
       {!!error && (
         <Text style={s.error} accessibilityRole="alert">
           {error}
@@ -163,6 +198,10 @@ export default function SetupScreen({ state, mutate, finish }: Props) {
               }
             />
           </View>
+          {!onboarding &&
+            state.matters.map((item) => (
+              <CaseEditor key={item.id} item={item} mutate={mutate} />
+            ))}
           <View style={s.card}>
             <Text style={s.cardTitle}>Import your files</Text>
             <Choices
@@ -201,12 +240,12 @@ export default function SetupScreen({ state, mutate, finish }: Props) {
           </View>
           <Text style={s.fine}>
             Assigning a document to a case with an active permission can make it
-            eligible for automatic sharing. You can classify existing files in
-            Files.
+            eligible for automatic sharing. To change an existing file’s case or
+            type, ask “Change file details” in chat.
           </Text>
           <Button
-            title="Next: your people →"
-            onPress={() => setStep("people")}
+            title={onboarding ? "Next: your people →" : "Return to chat"}
+            onPress={() => (onboarding ? setStep("people") : finish())}
           />
         </>
       ) : step === "people" ? (
@@ -254,21 +293,11 @@ export default function SetupScreen({ state, mutate, finish }: Props) {
             />
           </View>
           {state.contacts.map((person) => (
-            <View key={person.id} style={s.card}>
-              <Text style={s.cardTitle}>
-                {person.name} · {person.relationship || "Contact"}
-              </Text>
-              <Text style={s.fine}>
-                {person.endpoint} ·{" "}
-                {person.verified
-                  ? "Verified endpoint"
-                  : "Needs a verified Fyde account for automatic case requests"}
-              </Text>
-            </View>
+            <ContactEditor key={person.id} person={person} mutate={mutate} />
           ))}
           <Button
-            title="Next: automatic sharing →"
-            onPress={() => setStep("permissions")}
+            title={onboarding ? "Next: automatic sharing →" : "Return to chat"}
+            onPress={() => (onboarding ? setStep("permissions") : finish())}
           />
         </>
       ) : (
@@ -417,6 +446,12 @@ export default function SetupScreen({ state, mutate, finish }: Props) {
                   : "sensitive excluded"}{" "}
                 · expires {new Date(permission.expires_at).toLocaleDateString()}
               </Text>
+              {permission.recipient_changed && (
+                <Text style={s.error}>
+                  Recipient changed. Review a new permission before automatic
+                  requests resume.
+                </Text>
+              )}
               {permission.revoked ? (
                 <Text style={s.fine}>Revoked</Text>
               ) : (
@@ -440,11 +475,11 @@ export default function SetupScreen({ state, mutate, finish }: Props) {
             </View>
           ))}
           <Button
-            title="Finish setup & open chat →"
+            title={onboarding ? "Finish setup & open chat →" : "Return to chat"}
             disabled={busy}
             onPress={() =>
               perform(async () => {
-                await mutate("/api/v1/setup/complete/", {});
+                if (onboarding) await mutate("/api/v1/setup/complete/", {});
                 finish();
               })
             }

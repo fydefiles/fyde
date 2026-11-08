@@ -48,7 +48,7 @@ ACTIONS = {
     ),
     "F15": (
         "Mobile device QA and distribution",
-        "The Expo client, unsigned iOS simulator build and Apple iOS 27 runtime are available locally. Native UI verification is blocked by Device Hub display connection timeouts. A working simulator viewer or test device is needed to finish that check. Android native packaging needs an Android SDK/emulator or authorized build environment. For store distribution confirm owned bundle/package identifiers, Apple/Google developer accounts and signing, and set EXPO_PUBLIC_API_URL to the actual HTTPS customer backend. Do not put customer or provider secrets in public Expo configuration. No app-store release or device test is claimed.",
+        "The Expo client and normally signed local iOS simulator build are available. Native setup, chat, automatic case request, download and Save to Files were verified on iPhone 17 Pro / iOS 26.0 with synthetic fixtures. Physical-device QA remains unverified. Android native packaging needs an Android SDK/emulator or authorized build environment. For store distribution confirm owned bundle/package identifiers, Apple/Google developer accounts and signing, and set EXPO_PUBLIC_API_URL to the actual HTTPS customer backend. Do not put customer or provider secrets in public Expo configuration. No app-store release is claimed.",
     ),
     "F14": (
         "Optional SMS delivery activation",

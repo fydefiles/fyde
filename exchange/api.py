@@ -147,6 +147,7 @@ def policy_card(p):
         "used": p.requests_used,
         "limit": p.max_requests,
         "revoked": bool(p.revoked_at),
+        "recipient_changed": p.endpoint_revision != p.contact.endpoint_revision,
     }
 
 
@@ -188,6 +189,7 @@ def workspace(user):
                 "email": c.email,
                 "phone": c.phone,
                 "verified": bool(c.verified_at or c.phone_verified_at),
+                "aliases": c.aliases,
             }
             for c in contacts
         ],
@@ -261,6 +263,18 @@ def state(request):
     return workspace(request.user)
 
 
+@api(("POST",))
+def search(request):
+    from .commands import search_files
+
+    # Keep private filenames and document-text searches out of URL/access-log query strings.
+    query = body(request).get("query", "")
+    if not isinstance(query, str) or len(query) > 180:
+        raise PolicyError("invalid_query", "Use a search of up to 180 characters.")
+    query = query.strip()
+    return {"files": [chat.file_card(v) for v in search_files(request.user, query)]}
+
+
 @api(("GET", "POST"))
 def conversation(request):
     if request.method == "GET":
@@ -318,6 +332,25 @@ def matters(request):
 def contacts(request):
     item = setup.add_contact(request.user, body(request))
     return chat.contact_card(item)
+
+
+@api(("POST",))
+def edit_contact(request, contact_id):
+    get_object_or_404(Contact, pk=contact_id, owner=request.user)
+    data = body(request)
+    if set(data) - {"name", "email", "phone", "relationship", "aliases"}:
+        raise PolicyError("invalid_contact", "Choose supported contact details.")
+    return chat.contact_card(setup.update_contact(request.user, contact_id, data))
+
+
+@api(("POST",))
+def rename_case(request, matter_id):
+    get_object_or_404(Matter, pk=matter_id, owner=request.user)
+    data = body(request)
+    if set(data) != {"name"} or not isinstance(data["name"], str):
+        raise PolicyError("invalid_case", "Supply the new case name.")
+    item = setup.rename_matter(request.user, matter_id, data["name"])
+    return {"id": str(item.pk), "name": item.name}
 
 
 @api(("POST",))

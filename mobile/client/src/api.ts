@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import { fetch as expoFetch } from "expo/fetch";
 import * as SecureStore from "expo-secure-store";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
@@ -67,7 +68,7 @@ export async function call<T>(
   const multipart = data instanceof FormData;
   let response: Response;
   try {
-    response = await fetch(API_ROOT + path, {
+    response = await expoFetch(API_ROOT + path, {
       method,
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -81,7 +82,9 @@ export async function call<T>(
     });
   } catch {
     throw new ApiError(
-      "Cannot connect to Fyde. Your message is kept; retry when connected.",
+      multipart
+        ? "Cannot upload this file. Check your connection and choose the file again."
+        : "Cannot connect to Fyde. Your message is kept; retry when connected.",
       0,
     );
   }
@@ -126,9 +129,9 @@ export async function download(file: FileCard, token: string) {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     return;
   }
-  const folder = FileSystem.cacheDirectory + "fyde-received/";
+  const folder = FileSystem.cacheDirectory + "fyde-received/" + file.id + "/";
   await FileSystem.makeDirectoryAsync(folder, { intermediates: true });
-  const destination = folder + file.id + "-" + name;
+  const destination = folder + name;
   const result = await FileSystem.downloadAsync(API_ROOT + path, destination, {
     headers: { Authorization: `Bearer ${token}` },
   });

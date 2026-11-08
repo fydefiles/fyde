@@ -36,6 +36,7 @@ export type Contact = {
   email: string;
   phone: string;
   verified: boolean;
+  aliases?: string;
 };
 export type Permission = {
   id: string;
@@ -49,6 +50,7 @@ export type Permission = {
   used: number;
   limit: number;
   revoked: boolean;
+  recipient_changed?: boolean;
   expires_at: string;
 };
 export type Workspace = {
@@ -75,6 +77,8 @@ export type Turn = {
   reply: string;
   result: {
     kind: string;
+    section?: "files" | "people" | "permissions" | "classify";
+    action_label?: string;
     files?: FileCard[];
     contacts?: Contact[];
     policies?: { id: string; name: string; from: string }[];

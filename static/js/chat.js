@@ -23,6 +23,7 @@
     (result.policies || []).forEach(p=>choice(cards,turn.id,p.name,`From ${p.from}`,{policy:p.id}));
     (result.transfers || []).forEach(t=>card(cards,t.title,t.message || `${t.state.replaceAll('_',' ')} · View receipt ↗`,t.url));
     if (result.kind === 'policy_draft') card(cards,'Review automatic sharing','Choose the scope once →',`/app/setup/?step=permissions&contact_id=${encodeURIComponent(result.contact_id)}&matter_id=${encodeURIComponent(result.matter_id)}`);
+    if (result.kind === 'workspace_action') card(cards,result.action_label,'Review changes →',result.url);
     if (result.remaining_versions?.length) choice(cards,turn.id,'Send next batch',`${result.remaining_versions.length} files remain`,{remaining:'true'});
     assistant.append(cards);article.append(user,assistant);log.append(article); log.scrollTop=log.scrollHeight;
   }

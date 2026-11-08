@@ -27,6 +27,13 @@ export type FileCard = {
   from?: string;
   download_url?: string;
   api_download_url?: string;
+  match?: {
+    kind: "keyword" | "semantic";
+    excerpt: string;
+    page: number | null;
+    start: number;
+    end: number;
+  };
 };
 export type Contact = {
   id: string;

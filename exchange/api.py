@@ -410,14 +410,15 @@ def state(request):
 
 @api(("POST",))
 def search(request):
-    from .commands import search_files
+    from .search import search as search_imports
 
     # Keep private filenames and document-text searches out of URL/access-log query strings.
     query = body(request).get("query", "")
     if not isinstance(query, str) or len(query) > 180:
         raise PolicyError("invalid_query", "Use a search of up to 180 characters.")
     query = query.strip()
-    return {"files": [chat.file_card(v) for v in search_files(request.user, query)]}
+    rate_limit(f"customer-search:{request.user.pk}", 60, 60)
+    return search_imports(request.user, query)
 
 
 @api(("GET", "POST"))

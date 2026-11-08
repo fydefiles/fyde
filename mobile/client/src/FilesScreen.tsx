@@ -163,6 +163,7 @@ export default function FilesScreen({
     query: string;
     files: FileCard[];
     error: string;
+    semanticStatus?: string;
   }>({ query: "", files: [], error: "" });
   const files = term
     ? result.query === term
@@ -176,12 +177,12 @@ export default function FilesScreen({
     if (!term) return;
     let current = true;
     const timer = setTimeout(() => {
-      call<{ files: FileCard[] }>("/api/v1/files/search/", token, "POST", {
+      call<{ files: FileCard[]; semantic_status?: string }>("/api/v1/files/search/", token, "POST", {
         query: term,
       })
         .then((value) => {
           if (current)
-            setResult({ query: term, files: value.files, error: "" });
+            setResult({ query: term, files: value.files, error: "", semanticStatus: value.semantic_status });
         })
         .catch((e) => {
           if (current) setResult({ query: term, files: [], error: e.message });
@@ -200,12 +201,11 @@ export default function FilesScreen({
       <Text style={s.eyebrow}>YOUR PRIVATE WORKSPACE</Text>
       <Text style={s.heading}>Find your files.</Text>
       <Text style={s.sub}>
-        Search by name, document type, case or indexed contents using the search
-        field below.
+        Describe what is in a file, or search by name, document type or case.
       </Text>
       <Field
         label="Search your files"
-        placeholder="Name, case, type or contents"
+        placeholder="Try: the document about working from home"
         value={query}
         onChangeText={onQuery}
         autoFocus
@@ -233,6 +233,26 @@ export default function FilesScreen({
           {error || downloadError}
         </Text>
       )}
+      {!busy && result.query === term && result.semanticStatus === "unavailable" && (
+        <Text style={s.sub} accessibilityLiveRegion="polite">
+          Search by meaning is temporarily unavailable. These results match words in your files.
+        </Text>
+      )}
+      {!busy && result.query === term && result.semanticStatus === "indexing" && (
+        <Text style={s.sub} accessibilityLiveRegion="polite">
+          Your files are being indexed for search by meaning. You can search by words now.
+        </Text>
+      )}
+      {!busy && !!term && result.query === term && result.semanticStatus === "disabled" && (
+        <Text style={s.sub}>
+          Search by meaning is not connected yet. These results match words in your files.
+        </Text>
+      )}
+      {!busy && result.query === term && result.semanticStatus === "blocked" && (
+        <Text style={s.sub} accessibilityLiveRegion="polite">
+          Some files could not be indexed for search by meaning. You can still search by words.
+        </Text>
+      )}
       {!busy &&
         files.map((file) => (
           <View style={s.card} key={file.id}>
@@ -241,6 +261,12 @@ export default function FilesScreen({
               {file.name} · v{file.number} · {file.state} ·{" "}
               {file.matter || "Private · no case"}
             </Text>
+            {!!file.match?.excerpt && (
+              <Text style={s.sub} selectable>{file.match.excerpt}</Text>
+            )}
+            {!!file.match?.page && (
+              <Text style={s.fine}>Matching passage on page {file.match.page}</Text>
+            )}
             <Button
               title="Versions and file details →"
               secondary
@@ -260,7 +286,7 @@ export default function FilesScreen({
         ))}
       {!busy && !files.length && !error && (
         <Text style={s.sub}>
-          No matching files. Try another name, case or document type.
+          No matching files. Try a different description, name or phrase from the file.
         </Text>
       )}
       <Text style={s.fine}>

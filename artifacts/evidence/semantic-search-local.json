@@ -1,0 +1,30 @@
+{
+  "environment": "local real EmbeddingGemma 2 + PostgreSQL/pgvector, synthetic imported files",
+  "indexed_segments": 3,
+  "results": [
+    {
+      "query": "working from home",
+      "expected": "upload-0239.txt",
+      "matched": [
+        "upload-0239.txt"
+      ],
+      "elapsed_ms": 257
+    },
+    {
+      "query": "cooking a salad",
+      "expected": "recipes.txt",
+      "matched": [
+        "recipes.txt"
+      ],
+      "elapsed_ms": 52
+    },
+    {
+      "query": "railway departure",
+      "expected": "travel.txt",
+      "matched": [
+        "travel.txt"
+      ],
+      "elapsed_ms": 47
+    }
+  ]
+}
